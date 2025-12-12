@@ -1,0 +1,44 @@
+# Architecture & Layout
+
+## Estrutura central `app/`
+
+- `app/root.tsx`: layout raíz que envolve `<I18nProvider>`, `<ThemeProvider>` e o novo `<AuthProvider>`; define o skip link e monta o Document/Body com meta tags e `<Outlet />` do `react-router`.
+- `app/page.tsx` e outros arquivos em `app/routes/`: componentes de rota com `PageShell`, animações e `requireAuth` quando necessário.
+- `app/components/`: UI atoms (botões, inputs, cards) e peças estruturais (`page-shell`, `site-header`, `site-sidebar`, `site-footer`).
+- `app/theme/`: provedor de tema (`theme-provider.tsx`, `theme-switcher.tsx`) e contexto dos tokens.
+- `app/i18n/`: configuração de localização, provedores, helpers `getPageMeta`/`getPageCopy` e JSONs de conteúdo traduzido.
+
+## Layout base `PageShell`
+
+- `PageShell` reúne `SiteHeader`, `SiteSidebar`, `SiteNavMobile` e `SiteFooter` dentro de um contêiner com borda e background tokenizado.
+- cabeçalhos de página recebem `title`, `description` e `eyebrow` (como o `heroTag` das rotas de jogos) para manter consistência;
+- `main` centraliza o conteúdo com `grid` e garante acessibilidade (`id="main"` usado pelo Skip Link).
+
+## Navegação & rotas
+
+- O `react-router` usa `app/routes.ts` gerado e cada rota exporta `meta` (via `getPageMeta`) e, quando necessário, `loader`/`action` combinando com `requireAuth`.
+- Rotas complexas (ex.: `/games`, `/perfil`) capturam tradução tipada via `useI18n` e renderizam listas de cards/painéis usando `PageShell`.
+- `PageShell`, `SiteHeader` e `SiteSidebar` são componentes `Client` porque usam hooks como `useTheme` e `useI18n`.
+
+## Layout responsivo e mobile
+
+- `SiteNavMobile` só aparece em telas pequenas, sincronizando com a `SideBar` para manter a navegação acessível.
+- Os cards usa `rounded-3xl`, `border` e `shadow-sm` para seguir o design tokens que estão descritos em `app/theme/app.css`.
+- Botões e inputs reutilizam os componentes em `app/components/ui/` e dependem de tokens CSS customizados.
+
+## Experiências plugáveis (ex.: jogos)
+
+- `app/routes/games.tsx` agrupa seções definidas no JSON de traduções e monta `experiences` com metadata como `badge`, `soon` e `href`.
+- Detalhes de cada jogo são carregados dinamicamente (`games.$slug` usa `getGameBySlug`, `useGameLoader` e `useGameStats`) e exibem o fallback `gameDetail.loading`.
+- Os dados dos jogos estão tipados em `app/types/games.ts` e os módulos que criam novas experiências devem acrescentar `GameDescriptor` e `GameComponent` específicos.
+
+## Autenticação e proteção
+
+- `requireAuth` (em `app/utils/auth.server.ts`) bloqueia rotas sensíveis, chamando `redirect` para `/login` quando necessário.
+- O loader raiz lê os cookies de acesso, injeta o estado inicial no `AuthProvider` e mantém o header/rotas sincronizados com o backend Passport/JWT.
+
+## Build & deployment
+
+- `npm run build` chama `react-router build` para gerar os artefatos em `.vercel` e `./build`.
+- `npm run start` usa `react-router-serve` junto com `dotenv` para consumir o server build.
+- `app/routes.ts` e `.react-router/types/**` são atualizados automaticamente via `react-router typegen`.

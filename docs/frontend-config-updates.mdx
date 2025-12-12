@@ -1,0 +1,40 @@
+---
+title: Atualizações de Configuração do Frontend
+---
+
+Esta página resume as mudanças recentes relacionadas à configuração e variáveis de ambiente do frontend.
+
+## Resumo
+
+- Exportações numéricas em `app/config/env.ts`:
+  - `minDeposit`, `maxDeposit`, `minWithdrawal`, `maxWithdrawal` — limites em centavos
+  - `contactRateMax`, `contactRateWindowMs` — valores do rate limiter do formulário de contato
+
+- Formulário de contato atualizado:
+  - Arquivo: `app/routes/contato.tsx`
+  - Envia `POST` para `/api/contact` com payload `{ name, email, message }`.
+  - Estado de UI: `idle | sending | sent | error` e mensagens amigáveis.
+
+- Rate limiter cliente:
+  - Hook: `app/hooks/useRateLimiter.ts`
+  - Persistência: `localStorage` (chave `frontbet:rate_limiter:{key}`)
+  - Padrão: 3 tentativas por 60s, configuráveis via `NEXT_PUBLIC_CONTACT_RATE_MAX` e `NEXT_PUBLIC_CONTACT_RATE_WINDOW_MS`.
+
+## Recomendações
+
+- Prefira importar os valores prontos de `app/config/env.ts` ao invés de ler `process.env` diretamente.
+- Documente as variáveis no `.env.example` e nos secrets do CI (`NEXT_PUBLIC_API_BASE_URL`, limites, etc.).
+- Para segurança real contra abuso, implemente rate-limiting server-side em paralelo ao rate-limiter cliente.
+
+## Como testar localmente
+
+1. Copie o `.env.example` para `.env`.
+2. Ajuste `NEXT_PUBLIC_API_BASE_URL` para apontar ao backend de desenvolvimento.
+3. Rode o frontend com `npm run dev` e abra `/contato`.
+
+## Arquivos envolvidos
+
+- `app/config/env.ts` — loader e validador Zod para variáveis de ambiente; exporta valores numéricos prontos.
+- `app/routes/contato.tsx` — formulário de contato e integração com API.
+- `app/hooks/useRateLimiter.ts` — lógica de rate limiting frontend.
+- `app/lib/config.ts` — agora consome `minDeposit`/`maxDeposit` diretamente de `env.ts`.

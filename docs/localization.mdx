@@ -1,0 +1,31 @@
+# Localization & Internationalization
+
+## Fonte das traduções
+
+- As mensagens estão em `app/i18n/locales/{ptbr,ptmz,es,en}.json` e seguem a mesma estrutura para manter os componentes reutilizáveis.
+- Cada JSON exporta seções como `home`, `gamesHub`, `audit`, `profile` etc., com `meta` (título/descrição) e campos específicos (cards, formulários, CTAs).
+
+## Configuração do provedor
+
+- `app/i18n/config.ts` importa os JSONs e define `supportedLocales` e `TranslationMessages` (unindo `LocaleCode` e o type map das traduções).
+- `localeMessages` é um `Record<LocaleCode, TranslationMessages>` usado pelo `I18nProvider`.
+- O provedor inicializa com `defaultLocale` no servidor e só troca para o `localStorage`/`navigator.language` dentro de um `useEffect`, evitando mismatches durante a hidratação.
+- `useI18n` retorna `{ locale, setLocale, t, messages, availableLocales }` para consumo direto nas rotas/components.
+
+## Helpers tipados
+
+- `app/i18n/page-copy.ts` expõe `getPageCopy` e `getPageMeta` para gerar `meta` dinâmico em cada rota (por exemplo: `meta` em `app/routes/games.tsx` chama `getPageMeta('gamesHub')`).
+- `app/types/i18n.ts` deriva `HomeCopy`, `GamesHubCopy`, `AuditCopy`, etc., diretamente de `TranslationMessages`, garantindo que acessos a `messages.xxx` sejam sempre tipados.
+- Rotas sensíveis (e.g., `perfil.tsx`, `games.tsx`, `auditoria.tsx`) usam esses tipos para evitar `unknown`/`any` e permitir autocompletar.
+
+## Comutação de idiomas
+
+- `app/components/language-switcher.tsx` (ou equivalente) consome `setLocale` para trocar o idioma em runtime;
+- `LOCALE_STORAGE_KEY` guarda a preferência no navegador e é lido pelo efeito no `I18nProvider` após a hidratação;
+- a propriedade `html lang` é mantida em sincronia (`useEffect` atualiza `document.documentElement.lang`).
+
+## Boas práticas
+
+- Sempre adicionar novas seções git a `app/types/i18n.ts` para manter tipagem forte;
+- Ao criar conteúdos repetidos (cards, formularios) reutilize estruturas existentes nos JSONs e mantenha `meta` e `heroTag` no mesmo nível;
+- Evite usar informações dependentes do navegador direto no render (use `useEffect`) para não quebrar a hidratação.

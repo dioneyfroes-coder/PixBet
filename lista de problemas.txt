@@ -1,0 +1,12 @@
+a página games voltou a mostrar dados mock, apague dados mock, ela deve pegar os jogos do backend novamente. 
+
+página loja, deve parar de usar dados mock, então buscar itens para venda direto do backend,
+
+página carteira, o modal  para confirmação de deposito não faz sentido confirmar com botão atualizar saldo, deve ser um botão confirmar depósito.
+    solicitar saque deveria veficar a existencia de chave pix da conta, se não tiver, abrir modal para cadastrar chave pix antes de solicitar saque.
+    também usar modal para confirmar saque.
+
+página perfil, adicionar opção para alterar email e senha em um modal.
+    adicionar opção para excluir conta, com confirmação em modal.
+    o formulário de atualização de perfil deve validar os campos antes de enviar para o backend.
+    o formulário deve mesmo se comunicar com o backend para atualizar os dados do usuário, incluindo chave pix para saque, também incluir envio de documentos(pelo meno 3), já temos rotas para isso,

@@ -1,0 +1,133 @@
+@import 'tailwindcss';
+@import './styles/tokens.css';
+
+@theme {
+  --font-sans: var(--token-font-family-sans);
+  --radius: var(--token-radius-md);
+}
+
+:root {
+  color-scheme: light;
+  --color-bg: var(--token-color-neutral-25);
+  --color-surface: var(--token-color-neutral-0);
+  --color-text: var(--token-color-neutral-800);
+  --color-muted: var(--token-color-neutral-500);
+  --color-primary: var(--token-color-brand-400);
+  --color-accent: var(--token-color-accent-400);
+  --color-success: var(--token-color-success-400);
+  --color-warning: var(--token-color-warning-400);
+  --color-danger: var(--token-color-danger-400);
+  --color-border: var(--token-color-neutral-100);
+  --color-border-strong: var(--token-color-neutral-200);
+  --color-surface-muted: var(--token-color-neutral-100);
+  --shadow-elevated: var(--token-shadow-soft);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: var(--token-color-neutral-900);
+  --color-surface: var(--token-color-neutral-800);
+  --color-text: var(--token-color-neutral-25);
+  --color-muted: var(--token-color-neutral-300);
+  --color-primary: var(--token-color-brand-300);
+  --color-accent: var(--token-color-warning-400);
+  --color-success: var(--token-color-success-400);
+  --color-warning: var(--token-color-warning-500);
+  --color-danger: var(--token-color-danger-500);
+  --color-border: var(--token-color-neutral-700);
+  --color-border-strong: var(--token-color-neutral-700);
+  --color-surface-muted: var(--token-color-neutral-700);
+  --shadow-elevated: var(--token-shadow-strong);
+}
+
+[data-theme='high-contrast'] {
+  color-scheme: dark;
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-text: #ffffff;
+  --color-muted: #f5f5f5;
+  --color-primary: #ffff00;
+  --color-accent: #00ffff;
+  --color-success: #00ff00;
+  --color-warning: #ffff00;
+  --color-danger: #ff0055;
+  --color-border: #ffffff;
+  --color-border-strong: #ffffff;
+  --color-surface-muted: #1a1a1a;
+  --shadow-elevated: 0 0 0 2px #ffffff;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  min-width: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--token-font-family-sans);
+  font-size: var(--token-font-size-base);
+  line-height: var(--token-line-height-normal);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 1rem;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  z-index: 50;
+}
+
+.skip-link:focus-visible {
+  left: 1rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

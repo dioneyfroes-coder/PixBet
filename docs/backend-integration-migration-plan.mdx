@@ -1,0 +1,77 @@
+---
+title: Plano de Migração - Integração Backend
+---
+
+# Plano de Migração — Integração Frontend ⇄ Backend
+
+Este documento reúne as tarefas necessárias para integrar o frontend com o backend usando os artefatos fornecidos em `docs da backend/` (API_DOCS.mdx, ERROS.mdx, openapi.json).
+
+Use esta checklist para marcar as tarefas concluídas conforme avançamos.
+
+## Como usar
+
+- Marque as tarefas como concluídas no controle de versão (git) ao terminar.
+- A referência principal é `docs da backend/openapi.json`. Se necessário, atualizar essa especificação upstream.
+- Ferramentas sugeridas para validar/gerar contratos (opcional): `openapi-generator`, `openapi-typescript`, `openapi-client-axios`, `swagger-codegen`.
+
+## Checklist de Migração
+
+- [ ] 1. Revisar documentação do backend
+  - Ler `docs da backend/API_DOCS.mdx` e `docs da backend/ERROS.mdx` para entender recursos, contratos e códigos de erro.
+  - Inspecionar `docs da backend/openapi.json` para modelos e endpoints.
+
+- [ ] 2. Definir contrato do SDK
+  - Validar se os schemas em `app/lib/sdk/schemas` (gerados a partir do `api-client`) cobrem todos os objetos/requests necessários. Ajustar conforme o OpenAPI oficial.
+  - Mapear quais funções em `app/lib/sdk/clients/*` precisam de ajustes ou extensões específicas (auth, wallet, games, payments, admin etc.).
+
+- [ ] 3. Implementar clientes em `app/lib/sdk`
+  - Manter os clientes em `app/lib/sdk/clients` alinhados ao runtime oficial (`app/lib/sdk/modules`), reaproveitando `sendApiRequest` e validações Zod.
+  - Garantir tratamento consistente de headers, uso de tokens (vide `app/lib/token.ts`) e propagação de erros (`ApiError`).
+
+- [ ] 4. Autenticação e variáveis de ambiente
+  - Confirmar como obter e refrescar tokens (Passport/JWT) e como repassar `Authorization: Bearer <token>`.
+  - Documentar somente `NEXT_PUBLIC_API_BASE_URL` no `.env.example` e garantir que os ambientes (local/CI) definam esse valor.
+
+- [ ] 5. Ligar features às chamadas reais
+  - Carteira (saldo, extrato, PIX), perfil, home, auditoria e jogos já consomem os clientes. Após implementar o SDK, validar cada fluxo manualmente.
+  - Atualizar `wallet-service`, stores e loaders caso novas respostas exijam transformações adicionais.
+
+- [ ] 6. Cobertura de testes
+  - Manter testes unitários existentes (stores, serviços, rotas). Avaliar necessidade de novos testes end-to-end ao integrar com o backend real.
+
+- [ ] 7. Atualizar documentação do frontend
+  - Registrar no `README.md` e neste documento o fluxo para configurar o SDK/API e qualquer passo extra de build.
+
+- [ ] 8. Adicionar CI para verificação de contrato
+  - Continuar validando `docs da backend/openapi.json` com `swagger-cli validate`.
+  - Executar `npm run test`, `npm run lint` e `npm run typecheck` para garantir consistência durante o pipeline.
+
+- [ ] 9. Deploy em staging e smoke tests
+  - Fazer deploy em ambiente de staging e rodar smoke tests contra APIs reais.
+  - Documentar problemas e rollback plan.
+
+## Critérios de aceitação
+
+- Endpoints críticos (login, saldo, jogos) respondem com dados válidos em staging.
+- Testes unitários e de integração cobrem pelo menos os fluxos críticos.
+- Documentação atualizada com comandos para gerar cliente e variáveis de ambiente.
+
+## Comandos úteis
+
+```bash
+# rodar testes
+npm run test
+
+# executar frontend em dev
+npm run dev
+```
+
+## Referências
+
+- `docs da backend/API_DOCS.mdx`
+- `docs da backend/ERROS.mdx`
+- `docs da backend/openapi.json`
+
+---
+
+_Criado automaticamente. Marque as tarefas concluídas e comunique quando quiser que eu implemente a próxima etapa (gerar cliente, criar wrapper, adicionar mocks, etc.)._

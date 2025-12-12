@@ -1,0 +1,37 @@
+Pontos de acoplamento/problemáticos (o que revisar)
+
+token.ts e getAccessToken() não devem depender de globais específicos — preferir providers explícitos.
+handleLogout() faz redirect via window.location.replace('/login') → side-effect global (já mitigado parcialmente).
+O novo diretório `app/lib/sdk` ainda está em modo stub; quando o SDK oficial chegar precisamos garantir responsabilidades claras (fetch, retry, validação, tratamento de erro) dentro de cada cliente.
+Logs e debugging foram temporariamente incluídos (removidos já).
+Falta de serialização de refresh: múltiplas requisições que recebem 401 podem disparar várias tentativas de refresh simultâneas (causou comportamento de redirect/reload observado).
+Arquivos gerados (.react-router/\*) disparavam watcher → já mitigado em vite.config.ts.
+Uso de localStorage direto em token.ts — bom para cliente, mas dificulta testes em algumas situações; já existe guard isBrowser().
+Recomendações concretas (ordenadas por impacto)
+
+Alta prioridade — Evitar refresh concorrente (recomendado)
+Problema: várias requests 401 podem causar múltiplas tentativas de refresh e redirecionamentos.
+Solução: implementar um “single in-flight refresh” em token.ts:
+manter let refreshInFlight: Promise<string | null> | null.
+refreshTokens() devolve refreshInFlight se já existir, senão cria a Promise e a compartilha.
+garante que apenas uma request faz network para /api/auth/refresh.
+Benefício: evita redundância, race conditions e múltiplos handleLogout().
+Médio impacto — Injeção de provider de token em vez de heurísticas globais
+Problema: getAccessToken() não pode depender de globais; deve seguir providers registrados ou os tokens persistidos localmente.
+Solução: exigir registro de provider (já existe registerAccessTokenProvider) como primeira opção e documentar/forçar o uso no root (ex.: AuthProvider/TokenRegistrar concentra a sincronização). Reduz uso de heurísticas e torna testagem mais previsível.
+Médio impacto — Extrair side-effects de handleLogout
+Problema: handleLogout mistura limpeza e redirect.
+Solução: separar responsabilidades:
+clearAuthState() que apenas limpa tokens/estado.
+redirectToLogin() que faz window.location.replace.
+handleLogout() por padrão chama ambos, mas apps/testes podem substituir setLogoutHandler com comportamento customizado.
+Benefício: testes mais fáceis e menor risco de redirects indesejados em SSR / ambiente de teste.
+Médio/baixo — Barrels e export central
+Problema: imports diretos espalhados (p.ex. ../lib/token). O barrel `app/lib/index.ts` já reexporta token/auth/error/schemas e agora também os tipos do SDK.
+Solução: priorizar `import { ... } from 'app/lib'` sempre que possível e usar `app/lib/sdk/clients/*` como ponto único para chamadas remotas.
+Baixo — Evitar window espalhado e melhorar abstração
+Problema: chamadas diretas window.location ou qualquer global específico de auth.
+Solução: criar um adaptador app/lib/browser.ts com wrappers isBrowser(), getPathname(), replaceLocation() — facilita mocks.
+Infra / dev-experience
+Documentar módulo: criar docs/modules.md com mapa rápido (onde fica api, auth, stores, ui).
+Adicionar testes unitários para token.refreshTokens com mutex.
