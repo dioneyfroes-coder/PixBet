@@ -1,0 +1,30 @@
+.coin-flip-root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+}
+.coin {
+  width: 120px;
+  height: 120px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, #fff 0%, #f3f4f6 20%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+.coin.flip {
+  animation: coin-flip 1.2s cubic-bezier(.2,.9,.3,1) forwards;
+}
+.coin.revealed.heads { background: linear-gradient(180deg,#fde68a,#f59e0b); }
+.coin.revealed.tails { background: linear-gradient(180deg,#bfdbfe,#3b82f6); }
+
+@keyframes coin-flip {
+  0% { transform: rotateX(0) rotateY(0) translateZ(0) scale(1); }
+  30% { transform: rotateX(720deg) rotateY(360deg) translateZ(10px) scale(1.05); }
+  100% { transform: rotateX(1260deg) rotateY(720deg) translateZ(0) scale(1); }
+}

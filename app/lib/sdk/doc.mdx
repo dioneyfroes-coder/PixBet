@@ -1,0 +1,205 @@
+import { Callout } from 'nextra-theme-docs';
+
+# API Client · Frontend Integration Guide
+
+Este guia descreve, passo a passo, como reutilizar o pacote `api-client` em qualquer outro projeto frontend (React, Next.js, Vite, etc.). Pressupondo que o pacote já esteja publicado no npm ou disponível localmente dentro de um monorepo.
+
+## 1. Instalação do pacote
+
+```bash
+# via npm
+npm install @pixbet/api-client
+
+# ou localmente (monorepo)
+npm install ../packages/api-client
+```
+
+<Callout type="info">
+  Se estiver consumindo a pasta localmente, execute `npm run build --workspace api-client` para
+  gerar a saída (ou use `npm link`). Assim você garante que os arquivos `.ts` e os tipos estão
+  coerentes com o resto do workspace.
+</Callout>
+
+## 2. Configuração de TypeScript e bundler
+
+1. Garanta que o projeto tenha os libs DOM habilitados, pois o cliente usa `fetch`, `Headers`, `FormData` e `BodyInit`.
+
+```jsonc
+// tsconfig.json
+{
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "moduleResolution": "bundler",
+    "types": ["vite/client"],
+  },
+}
+```
+
+2. Se estiver importando via alias (ex.: `@/api`), replique os `paths`.
+
+```jsonc
+// tsconfig.json ou tsconfig.app.json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/api": ["packages/api-client/src/index.ts"],
+      "@/api/*": ["packages/api-client/src/*"],
+      "@/types": ["packages/api-client/src/types/index.ts"],
+      "@/types/*": ["packages/api-client/src/types/*"],
+    },
+  },
+}
+```
+
+3. Ajuste o bundler (Vite / Next) para refletir o alias.
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'node:path';
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@/api': resolve(__dirname, 'packages/api-client/src'),
+      '@/types': resolve(__dirname, 'packages/api-client/src/types'),
+    },
+  },
+});
+```
+
+## 3. Bootstrap do runtime
+
+O cliente precisa saber a URL base antes da primeira requisição. Você pode:
+
+- Chamar `bootstrapApiRuntime` na entrada do app (ex.: `src/main.tsx`, `pages/_app.tsx`).
+- Ou atualizar manualmente via `updateApiBaseUrl` ao mudar entre ambientes.
+
+```ts
+// src/main.tsx ou equivalente
+import { bootstrapApiRuntime } from '@/api';
+
+bootstrapApiRuntime(import.meta.env.VITE_API_URL);
+
+// caso precise trocar em runtime
+// updateApiBaseUrl("https://sandbox.backbet.dev/api");
+```
+
+Caso não defina nada, o pacote tenta usar `import.meta.env.VITE_API_URL` ou `window.location.origin` como fallback.
+
+## 4. Consumo dos módulos
+
+Os módulos expõem funções já validadas por Zod. Cada chamada retorna `{ data, meta }`, mantendo o envelope do backend.
+
+```ts
+import { walletsApi, summarizeClientError } from '@/api';
+
+try {
+  const { data } = await walletsApi.getSummary({ token: session.accessToken });
+  console.log('Saldo', data.balance);
+  console.log('Moeda', data.currency);
+} catch (error) {
+  console.error(summarizeClientError(error));
+}
+```
+
+- **Auth**: `authApi.login`, `authApi.refresh`, `authApi.me`.
+- **Usuários**: `usersApi.getProfile`, `usersApi.updateProfile`, `usersApi.getPixKey`, `usersApi.updatePixKey`.
+- **Carteira**: `walletsApi.getSummary`, `walletsApi.getHistory`, `walletsApi.deposit`, `walletsApi.withdraw`.
+- **Finanças**: `financeApi.listPackages`, `financeApi.createWithdrawalRequest`, `financeApi.listWithdrawalRequests`.
+- **Bets / Events / Games**: `betsApi`, `eventsApi`, `gamesApi` oferecem helpers equivalentes para os domínios recém-divididos.
+
+### Carteira e multi-moeda
+
+- O backend agora envia o snapshot tanto em `{ id, balance: number }` quanto em `{ wallet: { balance: { amount, currency } } }`. `walletsApi.getSummary` normaliza automaticamente e sempre retorna `data.balance` numerico, `data.lockedBalance` numerico (quando presente) e `data.currency` definido.
+- `walletsApi.getHistory(options, { limit, offset })` reaproveita o DTO oficial: `transactions[].type` (`DEPOSIT`, `WITHDRAW`, `BET`, `WINNINGS`) e `transactions[].status` (`PENDING`, `COMPLETED`, `FAILED`). Use paginacao incremental (limit/offset) para streaming infinito.
+- Todas as operacoes de carteira trabalham com o enum de moedas `BRL | USD | EUR`; garanta que o valor selecionado seja convertido explicitamente para esse union antes do envio.
+
+<Callout type="info">
+  Se o backend introduzir novos formatos de snapshot, basta atualizar os schemas de carteira. O
+  consumo no frontend permanece igual, pois o cliente converte objetos `balance/lockedBalance`
+  aninhados em numeros e aceita respostas onde o payload vem embrulhado em `{wallet}`.
+</Callout>
+
+### Pix withdrawals
+
+Existem dois fluxos:
+
+1. **Carteira instantânea (`/wallets/withdraw`)** — usa `walletsApi.withdraw`. O payload aceita `pixKey` opcional; quando omitido, o backend usa a chave salva em `/users/me/pix-key` (acesse via `usersApi.getPixKey`/`updatePixKey`).
+
+```ts
+await walletsApi.withdraw(
+  {
+    amount: 200,
+    currency: 'BRL',
+    pixKey: 'user@example.com', // opcional, fallback configurável
+    description: 'Saque manual',
+  },
+  authOptions
+);
+```
+
+2. **Solicitação manual (`/finance/withdrawal-requests`)** — usa `financeApi.createWithdrawalRequest` para bloquear saldo e enviar o pedido para aprovação humana. O body exige apenas `amount`, `currency` e `notes?`:
+
+```ts
+await financeApi.createWithdrawalRequest(
+  {
+    amount: 150,
+    currency: 'BRL',
+    notes: 'Retirada parcial',
+  },
+  authOptions
+);
+```
+
+Os payloads agora aceitam apenas `number` (os schemas nao fazem mais `coerce`). Se o valor vier de inputs controlados como string, converta para numero (`Number(value)`) antes de chamar os helpers. `amount` precisa ser positivo; o schema falha com mensagem amigavel caso contrario.
+
+## 5. Autenticação e opções padrão
+
+Toda função autenticada aceita `AuthenticatedRequestOptions`:
+
+```ts
+await walletsApi.getHistory({
+  token: session.accessToken,
+  bypassUserId: 'admin-user-id', // opcional
+});
+```
+
+Sugestão: crie um hook/factory compartilhado que leia o token armazenado (Zustand, Redux, Context) e retorne `{ token, bypassUserId }` para evitar repetição.
+
+## 6. Erros e observabilidade
+
+- `ApiClientError` padroniza falhas. Use `summarizeClientError` para extrair mensagens amigáveis.
+- `createSchemaValidationError` diferencia erros de payload/response inválidos (útil em logs).
+- As funções retornam exceções padrão `TypeError` quando o `fetch` falha antes de chegar no servidor (CORS, perda de conexão).
+
+## 7. Requisitos de ambiente
+
+- O pacote assume `fetch` global. Em ambientes Node/SSR, use `undici` ou `cross-fetch` para fornecer `fetch`, `Headers`, `Request`, `Response`.
+- `URL`/`URLSearchParams` precisam existir (Node 18+ já inclui).
+- Para testes, é possível mockar com `msw` ou `vitest` interceptando `global.fetch`.
+
+## 8. Publicação e versionamento
+
+1. Atualize `package.json` em `packages/api-client` com `name`, `version`, `exports` e `types`.
+2. Rode `npm pack --workspace api-client` para validar a saída.
+3. Publique com `npm publish --workspace api-client` apontando para o registro desejado.
+
+<Callout type="warning">
+  Antes de publicar, revise se o pacote não depende de aliases locais (`@/`) internamente. Todos os
+  imports dentro do pacote devem ser relativos, garantindo que o consumidor não precise replicar
+  aliases do monorepo.
+</Callout>
+
+## 9. Checklist final
+
+- [ ] `bootstrapApiRuntime` configurado com a URL correta.
+- [ ] Tipos DOM presentes no `tsconfig`.
+- [ ] Alias (ou caminho do pacote) resolvido tanto no bundler quanto no TypeScript.
+- [ ] Hooks/components consumindo somente os helpers tipados (`authApi`, `walletsApi`, etc.).
+- [ ] Monitoramento de erros conectado a `summarizeClientError` ou `ApiClientError`.
+
+Seguindo os passos acima, qualquer frontend consegue usar o cliente BackBet de forma segura, validada e com experiência consistente de erros e autenticação.

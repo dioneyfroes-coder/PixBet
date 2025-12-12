@@ -1,0 +1,661 @@
+{
+  "common": {
+    "skipToContent": "Ir al contenido",
+    "language": "Idioma",
+    "desktopNavAria": "Navegación principal",
+    "mobileNavAria": "Menú móvil"
+  },
+  "header": {
+    "betaTag": "Beta",
+    "searchPlaceholder": "Buscar juegos, ligas o promos",
+    "login": "Ingresar",
+    "dashboard": "Panel",
+    "logout": "Salir"
+  },
+  "navigation": {
+    "overview": "Resumen",
+    "gamesHub": "Hub de juegos",
+    "store": "Tienda",
+    "wallet": "Billetera",
+    "profile": "Perfil",
+    "activity": "Actividad",
+    "audit": "Auditoría",
+    "about": "Acerca de",
+    "contact": "Contacto"
+  },
+  "quickActions": {
+    "depositPix": "Depositar PIX",
+    "explorePromos": "Ver promociones"
+  },
+  "sidebar": {
+    "navigationTitle": "Navegación",
+    "navigationSubtitle": "Accede módulos y herramientas",
+    "shortcutsTitle": "Atajos",
+    "shortcutsSubtitle": "Acciones rápidas para tu cuenta"
+  },
+  "footer": {
+    "disclaimer": "© {year} FrontBet. Las cuotas mostradas son ilustrativas.",
+    "about": "Acerca de",
+    "contact": "Contacto"
+  },
+  "home": {
+    "meta": {
+      "title": "FrontBet - Apuestas inteligentes",
+      "description": "Experiencia móvil con información instantánea y controles responsables."
+    },
+    "seasonTag": "Temporada 2025",
+    "heroTitle": "FrontBet, la cabina de tus apuestas",
+    "heroDescription": "Automatiza boletos, monitorea métricas en vivo y controla límites con claridad.",
+    "primaryCta": "Ver juegos",
+    "secondaryCta": "Ingresar",
+    "highlightsTitle": "Partidos destacados",
+    "highlightsSubtitle": "Cuota combinada",
+    "highlightsMatches": [],
+    "activity": {
+      "title": "Últimas acciones",
+      "subtitle": "Sincronizado con billeteras y hub de juegos.",
+      "items": []
+    },
+    "recommendations": {
+      "title": "Recomendaciones automáticas",
+      "subtitle": "Según tus últimas sesiones monitoreadas.",
+      "openCta": "Abrir"
+    },
+    "welcomeBack": "Bienvenido de nuevo, {name}.",
+    "balanceWidget": {
+      "title": "Saldo disponible",
+      "cta": "Abrir billetera"
+    }
+  },
+  "gamesHub": {
+    "meta": {
+      "title": "FrontBet - Catálogo de experiencias",
+      "description": "Explora módulos de sportsbook, casino y forex pensados para equipos de trading."
+    },
+    "heroTag": "Catálogo inteligente",
+    "heroTitle": "Elige la experiencia ideal para cada jugada",
+    "heroDescription": "Separa sportsbook, casino en vivo y forex en un mismo tablero.",
+    "filters": {
+      "all": "Todas",
+      "sports": "Deportes",
+      "casino": "Casino",
+      "forex": "Forex",
+      "searchPlaceholder": "Busca por nombre, función o modalidad",
+      "resultTemplate": "{count} experiencia(s)",
+      "emptyState": "No encontramos resultados. Ajusta los filtros."
+    },
+    "comingSoon": "Próximamente",
+    "sections": [
+      {
+        "id": "sports",
+        "eyebrow": "Apuestas deportivas",
+        "title": "Módulos tácticos para pre y live",
+        "description": "Herramientas pensadas para scouting y trading en tiempo real.",
+        "experiences": [
+          {
+            "id": "live-monitor",
+            "icon": "📡",
+            "name": "Live Match Monitor",
+            "summary": "Centraliza eventos del partido con alertas de riesgo sub-300ms.",
+            "highlights": [
+              "Alertas sincronizadas",
+              "Scripts Webhook listos",
+              "Layouts multi pantalla"
+            ],
+            "cta": "Abrir módulo",
+            "href": "/games/live-monitor",
+            "badge": "Live"
+          },
+          {
+            "id": "odds-heatmap",
+            "icon": "🔥",
+            "name": "Odds Heatmap",
+            "summary": "Mapa térmico que detecta clústeres calientes antes que el mercado.",
+            "highlights": ["18 casas y exchanges", "Insights con IA", "Exporta a CSV"],
+            "cta": "Abrir módulo",
+            "href": "/games/odds-heatmap",
+            "badge": "Pro"
+          },
+          {
+            "id": "penalty-analytics",
+            "icon": "🥅",
+            "name": "Penalty Analytics",
+            "summary": "Simulador avanzado para penales y jugadas a balón parado.",
+            "highlights": ["Modelos por liga", "Inputs del cuerpo técnico", "Dashboard listo"],
+            "cta": "Abrir módulo",
+            "href": "/games/penalty-analytics"
+          }
+        ]
+      },
+      {
+        "id": "casino",
+        "eyebrow": "Casino en vivo",
+        "title": "Mesas exclusivas con asistentes",
+        "description": "Operaciones con dealers aliados y data para automatizar.",
+        "experiences": [
+          {
+            "id": "quantum-roulette",
+            "icon": "🎡",
+            "name": "Quantum Roulette",
+            "summary": "Mesa con multiplicadores dinámicos y telemetría de 500 tiradas.",
+            "highlights": ["Tracker hot & cold", "Límites personalizados", "Streaming 4K"],
+            "cta": "Solicitar acesso",
+            "badge": "New",
+            "soon": true
+          },
+          {
+            "id": "blackjack-coach",
+            "icon": "🃏",
+            "name": "Blackjack Coach",
+            "summary": "Overlay en vivo que mezcla conteo y volatilidad.",
+            "highlights": [
+              "Decisión ideal sugerida",
+              "Alertas de reshuffle",
+              "Bitácora automática"
+            ],
+            "cta": "Solicitar acesso",
+            "badge": "Beta",
+            "soon": true
+          },
+          {
+            "id": "crash-lab",
+            "icon": "🚀",
+            "name": "Crash Lab",
+            "summary": "Laboratorio de estrategias crash con simulaciones.",
+            "highlights": ["Backtests de 24 meses", "Distribución en vivo", "Reportes exportables"],
+            "cta": "Solicitar acesso",
+            "soon": true
+          }
+        ]
+      },
+      {
+        "id": "forex",
+        "eyebrow": "Mesa forex",
+        "title": "Trading apalancado con control responsable",
+        "description": "Dashboards macro, señales y flujos copy-trading en paralelo.",
+        "experiences": [
+          {
+            "id": "forex-pulse",
+            "icon": "📈",
+            "name": "Forex Pulse",
+            "summary": "Radar de pares con sentimiento, índice dólar y agenda macro.",
+            "highlights": [
+              "Alertas de volatilidad",
+              "Integración Metatrader",
+              "Indicadores propios"
+            ],
+            "cta": "Solicitar acesso",
+            "soon": true
+          },
+          {
+            "id": "macro-radar",
+            "icon": "🌐",
+            "name": "Macro Radar",
+            "summary": "Agenda inteligente que puntúa el impacto automáticamente.",
+            "highlights": ["Calendario multi país", "Puntaje de impacto", "Briefings para squads"],
+            "cta": "Solicitar acesso",
+            "badge": "Research",
+            "soon": true
+          },
+          {
+            "id": "copy-trader",
+            "icon": "🤝",
+            "name": "Copy Trading Desk",
+            "summary": "Curaduría de traders auditados con límites configurables.",
+            "highlights": ["Historial auditado", "Límites personalizados", "Alertas de drawdown"],
+            "cta": "Solicitar acesso",
+            "soon": true
+          }
+        ]
+      }
+    ]
+  },
+  "audit": {
+    "meta": {
+      "title": "Auditoría - FrontBet",
+      "description": "Registros completos de retiros, depósitos y ajustes sensibles."
+    },
+    "title": "Auditoría",
+    "description": "Cada acción sensible queda registrada con estado y responsable.",
+    "cardTitle": "Logs monitoreados",
+    "exportCta": "Exportar CSV",
+    "filterCta": "Filtrar",
+    "loading": "Sincronizando registros...",
+    "refreshCta": "Actualizar registros",
+    "loadError": "No pudimos cargar los registros ahora. Inténtalo de nuevo en unos segundos.",
+    "emptyState": "No hay registros disponibles en este momento.",
+    "columns": {
+      "id": "ID",
+      "action": "Acción",
+      "amount": "Monto",
+      "status": "Estado",
+      "recordedAt": "Registro"
+    },
+    "entries": []
+  },
+  "wallet": {
+    "meta": {
+      "title": "Billetera - FrontBet",
+      "description": "Supervisa saldos PIX, flujos y validaciones antifraude en tiempo real."
+    },
+    "title": "Billetera PIX",
+    "description": "Controla saldo, flujos y retiros con validación continua.",
+    "summaryCard": {
+      "title": "Saldo disponible",
+      "description": "Actualizado automáticamente vía stream seguro.",
+      "liquidLabel": "Saldo líquido",
+      "lastDepositLabel": "Último depósito",
+      "realtimeLabel": "En tiempo real",
+      "syncingLabel": "Sincronizando datos",
+      "hiddenBalancePlaceholder": "***",
+      "showBalance": "Mostrar saldo",
+      "hideBalance": "Ocultar saldo",
+      "loadingBalance": "Cargando...",
+      "balanceError": "No pudimos cargar tu saldo ahora.",
+      "noRecords": "Sin registros",
+      "pendingTemplate": "{count} movimiento(s) pendiente(s)",
+      "activeChannels": "Canales activos:"
+    },
+    "monitoringCard": {
+      "title": "Monitoreo",
+      "description": "Estado del stream PIX y variaciones recientes.",
+      "orchestratorLabel": "Orquestador",
+      "onlineCopy": "Consumo estable con 240ms de latencia promedio.",
+      "syncingCopy": "Re-sincronizando para recuperar latência óptima.",
+      "transactionsLabel": "Transacciones / 24h",
+      "successRateLabel": "Tasa de éxito"
+    },
+    "depositCard": {
+      "title": "Depositar con PIX",
+      "description": "Flujo temporal para pruebas mientras finalizamos el QR definitivo.",
+      "status": {
+        "active": "PIX habilitado",
+        "paused": "PIX temporalmente pausado"
+      },
+      "pausedHelper": "Los depósitos vía PIX están temporalmente fuera de servicio.",
+      "pendingHint": "Los depósitos permanecen pendientes hasta que el proveedor PIX confirme; el saldo solo cambia cuando el backend valida el pago.",
+      "amountLabel": "Monto deseado",
+      "submit": "Generar QR",
+      "submitting": "Generando...",
+      "summaryLabel": "Monto",
+      "expiresLabel": "Expira en",
+      "limitsHelper": {
+        "range": "Límites: {min} - {max}",
+        "minOnly": "Mínimo: {min}",
+        "maxOnly": "Máximo: {max}"
+      },
+      "pixStatus": {
+        "gerado": "Esperando pago",
+        "confirmado": "Confirmado"
+      },
+      "modal": {
+        "title": "Finaliza tu depósito PIX",
+        "description": "Este flujo está en pruebas. Generamos el QR y monitoreamos el pago automáticamente.",
+        "amountLabel": "Monto del depósito",
+        "testingTitle": "Función en pruebas",
+        "testingDescription": "Cuando el proveedor Pix confirma el pago, el saldo se actualiza de forma automática. Usa el botón para forzar una verificación cuando quieras.",
+        "processingHint": "El crédito solo ocurre cuando el proveedor PIX confirma el pago al backend.",
+        "awaitingConfirmation": "Pago enviado al proveedor, esperando confirmación; el saldo se actualizará en cuanto PIX compense.",
+        "devHelper": "Después de pagar, espera unos segundos o haz clic en \"Actualizar saldo\" para sincronizar.",
+        "confirm": "Actualizar saldo",
+        "confirming": "Actualizando...",
+        "close": "Cerrar",
+        "expiresHelper": "Expira a las {time}",
+        "copyError": "No pudimos copiar automáticamente.",
+        "confirmError": "No pudimos actualizar el saldo ahora."
+      }
+    },
+    "withdrawCard": {
+      "title": "Solicitar retiro",
+      "description": "Validación antifraude automática antes del envío.",
+      "status": {
+        "active": "PIX habilitado",
+        "paused": "PIX temporalmente pausado"
+      },
+      "pausedHelper": "Los retiros vía PIX están temporalmente fuera de servicio.",
+      "amountLabel": "Monto del retiro",
+      "rgLabel": "RG / documento",
+      "cpfLabel": "CPF",
+      "pixKeyLabel": "Clave PIX",
+      "submit": "Solicitar retiro",
+      "submitting": "Procesando...",
+      "successNote": "Solicitud enviada para validación.",
+      "limitsHelper": {
+        "range": "Límites: {min} - {max}",
+        "minOnly": "Mínimo: {min}",
+        "maxOnly": "Máximo: {max}"
+      },
+      "referenceTemplate": "Retiro para {pixKey}"
+    },
+    "history": {
+      "title": "Historial reciente",
+      "description": "Depósitos, retiros y bonos en tiempo real.",
+      "searchLabel": "Filtrar historial",
+      "searchPlaceholder": "Busca por referencia, canal o estado",
+      "filtering": "Actualizando lista...",
+      "totalTemplate": "{count} registro(s)",
+      "emptyState": "No encontramos movimientos para este filtro.",
+      "filters": {
+        "todos": "Todos",
+        "deposit": "Depósitos",
+        "withdraw": "Retiros",
+        "bonus": "Bonos"
+      },
+      "tableHeaders": {
+        "movement": "Movimiento",
+        "amount": "Monto",
+        "channel": "Canal",
+        "status": "Estado"
+      },
+      "referenceMap": {
+        "Depósito confirmado via PIX": "Depósito PIX confirmado",
+        "Saque PIX - Banco Inter": "Retiro PIX - Banco Inter",
+        "Cashback loja de jogos": "Cashback tienda de juegos",
+        "Depósito programado": "Depósito programado",
+        "Depósito PIX confirmado automaticamente": "Depósito PIX auto confirmado",
+        "Saque solicitado via Web": "Retiro solicitado vía Web",
+        "Depósito escalonado automático": "Depósito escalonado automático"
+      }
+    },
+    "connectionStates": {
+      "online": "online",
+      "sincronizando": "sincronizando"
+    },
+    "channels": {
+      "PIX": "PIX",
+      "Web": "Web",
+      "Automação": "Automatización"
+    },
+    "statuses": {
+      "confirmado": "Confirmado",
+      "processando": "Procesando",
+      "aguardando": "Pendiente",
+      "falhou": "Falló"
+    },
+    "errors": {
+      "depositMin": "Ingresa al menos {minDeposit}.",
+      "depositMax": "Máximo por operación {maxDeposit}.",
+      "depositCreate": "No pudimos generar el QR ahora.",
+      "depositConfirm": "No pudimos confirmar el depósito. Intenta otra vez.",
+      "depositCopy": "Copia el código manualmente.",
+      "withdrawMin": "Retiro mínimo {minWithdrawal}.",
+      "withdrawMax": "Retiro máximo permitido {maxWithdrawal}.",
+      "withdrawBalance": "Saldo insuficiente.",
+      "withdrawPixKey": "Ingresa una clave PIX válida.",
+      "withdrawRg": "Ingresa el RG o documento del titular.",
+      "withdrawCpf": "Ingresa un CPF válido.",
+      "withdrawRequest": "No pudimos enviar la solicitud de retiro."
+    },
+    "pixUnavailableFallback": "Operación no disponible en este momento. Intenta nuevamente en unos segundos.",
+    "timeSince": {
+      "updatedNow": "Actualizado ahora",
+      "secondsAgo": "hace {count}s",
+      "minutesAgo": "hace {count}min"
+    }
+  },
+  "contact": {
+    "meta": {
+      "title": "Contacto - FrontBet",
+      "description": "Conversa con FrontBet para soporte, alianzas o integraciones."
+    },
+    "title": "Contáctanos",
+    "description": "Soporte diario para depósitos, límites y integraciones.",
+    "channels": [
+      {
+        "label": "Soporte 24/7",
+        "value": "soporte@frontbet.com"
+      },
+      {
+        "label": "Alianzas",
+        "value": "alianzas@frontbet.com"
+      },
+      {
+        "label": "Comercial",
+        "value": "+57 1 555-0188"
+      }
+    ],
+    "form": {
+      "nameLabel": "Nombre completo",
+      "namePlaceholder": "Tu nombre",
+      "emailLabel": "Correo",
+      "emailPlaceholder": "tu@email.com",
+      "messageLabel": "Mensaje",
+      "messagePlaceholder": "Cuéntanos cómo ayudarte",
+      "submit": "Enviar mensaje"
+    }
+  },
+  "login": {
+    "meta": {
+      "title": "Ingreso - FrontBet",
+      "description": "Inicia sesión para acceder a tus apuestas, límites e historial."
+    },
+    "title": "Ingresar a FrontBet",
+    "description": "Usa tus credenciales para seguir apostando con seguridad.",
+    "form": {
+      "cardTitle": "Accede a tu cuenta",
+      "cardDescription": "Ingresa el correo y la contraseña registrados en BackBet.",
+      "emailLabel": "Correo",
+      "passwordLabel": "Contraseña",
+      "submitLabel": "Ingresar",
+      "submittingLabel": "Ingresando...",
+      "invalidCredentials": "Credenciales inválidas. Revisa los datos e inténtalo nuevamente.",
+      "genericError": "No pudimos autenticar en este momento. Intenta otra vez en unos instantes.",
+      "signupPrompt": "¿Aún no tienes cuenta?",
+      "signupLink": "Crea una ahora"
+    }
+  },
+  "register": {
+    "meta": {
+      "title": "Crear cuenta - FrontBet",
+      "description": "Abre tu cuenta FrontBet para seguir apuestas, límites y wallets."
+    },
+    "title": "Crear cuenta",
+    "description": "Completa los datos básicos para habilitar el panel.",
+    "form": {
+      "cardTitle": "Regístrate",
+      "cardDescription": "Compartimos estos datos con el backend Passport para aprobar el acceso.",
+      "firstNameLabel": "Nombre",
+      "lastNameLabel": "Apellido",
+      "usernameLabel": "Usuario",
+      "emailLabel": "Correo",
+      "passwordLabel": "Contraseña",
+      "passwordHelper": "Mínimo de 8 caracteres.",
+      "submitLabel": "Crear cuenta",
+      "submittingLabel": "Creando...",
+      "successMessage": "¡Cuenta creada! Inicia sesión con tus credenciales cuando estés listo.",
+      "pendingReviewMessage": "Cuenta creada. Estamos activando tu acceso y avisaremos cuando puedas ingresar.",
+      "genericError": "No pudimos crear la cuenta ahora. Intenta nuevamente.",
+      "conflictError": "Ya existe una cuenta con esos datos.",
+      "validationError": "Revisa los campos informados e inténtalo otra vez.",
+      "loginPrompt": "¿Ya tienes cuenta?",
+      "loginLink": "Ingresar"
+    }
+  },
+  "store": {
+    "meta": {
+      "title": "Tienda - FrontBet",
+      "description": "Agrega boosts y herramientas premium a tu estrategia."
+    },
+    "title": "Tienda FrontBet",
+    "description": "Complementos opcionales para potenciar tu estrategia.",
+    "addToCart": "Agregar",
+    "products": [
+      {
+        "name": "Boost de cuotas",
+        "description": "Eleva hasta 15% el retorno de múltiples seleccionadas.",
+        "price": ""
+      },
+      {
+        "name": "Reportes avanzados",
+        "description": "Insights personalizados según tu historial.",
+        "price": ""
+      },
+      {
+        "name": "Alertas premium",
+        "description": "Notificaciones push cuando la cuota llega a tu precio.",
+        "price": ""
+      }
+    ]
+  },
+  "profile": {
+    "meta": {
+      "title": "Perfil - FrontBet",
+      "description": "Sigue tu desempeño, límites y historial personalizado."
+    },
+    "title": "Tu panel",
+    "description": "Resumen financiero, límites personalizados e historial rápido de apuestas.",
+    "stats": [
+      { "label": "Banca actual" },
+      { "label": "Ganancia del mes" },
+      { "label": "Apuestas activas" }
+    ],
+    "history": {
+      "title": "Historial reciente",
+      "subtitle": "Últimos movimientos del mes",
+      "cta": "Ver completo",
+      "entries": [],
+      "statusLabels": {
+        "won": "Ganada",
+        "open": "Abierta",
+        "lost": "Perdida"
+      },
+      "oddTemplate": "Cuota {odd}",
+      "footer": "Las cuotas y estados son ilustrativos y se actualizan automáticamente en producción."
+    },
+    "personalForm": {
+      "title": "Datos personales",
+      "description": "Actualiza documentos, canales de contacto y preferencias básicas con un flujo mobile-first.",
+      "fields": {
+        "name": { "label": "Nombre completo" },
+        "email": { "label": "Correo principal" },
+        "phone": { "label": "Teléfono / WhatsApp" },
+        "document": { "label": "Documento" },
+        "notes": {
+          "label": "Notas internas",
+          "placeholder": "Registra información relevante para el equipo."
+        }
+      },
+      "saveCta": "Guardar cambios",
+      "savingLabel": "Guardando...",
+      "savedNote": "Datos sincronizados con éxito."
+    },
+    "documentUpload": {
+      "title": "Carga documental",
+      "description": "Envía frente y dorso de documentos oficiales. Soporta PDF e imágenes de hasta 10MB.",
+      "dropzoneLabel": "Arrastra el archivo aquí",
+      "acceptedFormats": "Formatos aceptados: PDF, JPG, PNG",
+      "statusLabels": {
+        "processed": "Documento validado",
+        "uploading": "Subiendo...",
+        "idle": "Haz clic para seleccionar"
+      },
+      "helper": "La validación automática cruza datos con bureaus y mantiene un historial cifrado. La implementación real subirá a un storage seguro."
+    },
+    "notifications": {
+      "title": "Notificaciones y seguridad",
+      "description": "Centraliza alertas de incidentes y campañas sin salir del panel.",
+      "items": [
+        {
+          "id": "email",
+          "label": "Actualizaciones por correo",
+          "description": "Depósitos, retiros y cambios contractuales."
+        },
+        {
+          "id": "push",
+          "label": "Push en tiempo real",
+          "description": "Cuotas vigiladas, alertas de juego y campañas."
+        },
+        {
+          "id": "security",
+          "label": "Priorizar alertas de seguridad",
+          "description": "Bloqueo automático al detectar inicio sospechoso."
+        }
+      ],
+      "actions": {
+        "reset": "Restablecer predeterminados",
+        "save": "Actualizar preferencias"
+      }
+    }
+  },
+  "activity": {
+    "meta": {
+      "title": "Actividad reciente - FrontBet",
+      "description": "Monitorea inicios, depósitos y acciones sensibles en tiempo real."
+    },
+    "title": "Actividad reciente",
+    "description": "Todo lo que ocurrió en tu cuenta durante los últimos días. Recibe alertas en vivo cuando se ejecuta algo sensible.",
+    "cardTitle": "Eventos",
+    "searchLabel": "Buscar evento",
+    "searchPlaceholder": "Filtra por tipo, dispositivo o descripción",
+    "filtering": "Refinando...",
+    "loading": "Sincronizando eventos...",
+    "refreshCta": "Actualizar eventos",
+    "loadError": "No pudimos sincronizar la actividad ahora. Inténtalo de nuevo en unos segundos.",
+    "totalTemplate": "{count} registro(s)",
+    "emptyState": "No encontramos eventos para estos filtros.",
+    "typeLabels": {
+      "login": "Inicio de sesión",
+      "deposit": "Depósito",
+      "config": "Configuración",
+      "withdraw": "Retiro"
+    },
+    "filters": {
+      "todos": "Todos los eventos"
+    },
+    "events": [
+      {
+        "id": "evt-1",
+        "type": "Inicio de sesión",
+        "description": "Sesión autenticada correctamente",
+        "device": "Chrome · Ciudad de México",
+        "timestamp": "25/11/2025 09:12"
+      },
+      {
+        "id": "evt-2",
+        "type": "Depósito",
+        "description": "PIX recibido - R$ 500,00",
+        "device": "Mobile · Bogotá",
+        "timestamp": "24/11/2025 22:08"
+      },
+      {
+        "id": "evt-3",
+        "type": "Configuración",
+        "description": "2FA habilitado vía app autenticador",
+        "device": "Chrome · Lima",
+        "timestamp": "24/11/2025 21:45"
+      },
+      {
+        "id": "evt-4",
+        "type": "Retiro",
+        "description": "Solicitud de retiro PIX - R$ 300,00",
+        "device": "Chrome · Santiago",
+        "timestamp": "23/11/2025 18:17"
+      }
+    ]
+  },
+  "about": {
+    "meta": {
+      "title": "Sobre - FrontBet",
+      "description": "Conoce la misión de FrontBet y cómo hacemos apuestas responsables."
+    },
+    "title": "Quiénes somos",
+    "description": "FrontBet ofrece una experiencia transparente, rápida y responsable.",
+    "pillars": [
+      {
+        "title": "Tecnología en tiempo real",
+        "description": "Infraestructura optimizada para actualizar cuotas en milisegundos."
+      },
+      {
+        "title": "Responsabilidad",
+        "description": "Herramientas de límites, alertas y educación financiera."
+      },
+      {
+        "title": "Experiencia local",
+        "description": "Soporte en español con mirada al calendario regional."
+      }
+    ]
+  },
+  "gameDetail": {
+    "loading": "Cargando módulo de juego..."
+  }
+}

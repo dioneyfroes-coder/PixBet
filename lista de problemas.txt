@@ -1,0 +1,10 @@
+no backend já existe um jogo coin flip, falta implementar a lógica no frontend para jogar e receber o resultado do backend.
+
+página loja, deve parar de usar dados mock, então buscar itens para venda direto do backend, caso não tenha, informe num card que em breve será adicionados
+
+página carteira, vamos separar em componentes o saque e o depósito, refaça o saque totalmente
+
+página perfil, separar em componentes, em cards e seções de informações pessoais, segurança e preferências,
+    carregar os dados do usuário do backend para saber oque está mudando.
+    componentize a parte de Notificações e segurança, para buscar e atualizar os dados no backend, não usar mais mock, ainda não existe no backend, então faça primeiro e sugira as mudanças necessárias que combine com o que precisa.
+    

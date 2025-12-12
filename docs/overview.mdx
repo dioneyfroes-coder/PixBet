@@ -1,0 +1,42 @@
+# FrontBet Project Overview
+
+FrontBet é uma base frontend modular pensada para construir experiências de apostas em tempo real com foco em estabilidade, acessibilidade e personalização.
+
+## Objetivos principais
+
+- oferecer uma arquitetura em React + TypeScript capaz de receber novos módulos (jogos, carteiras, auditorias) sem retrabalho estrutural;
+- manter temas tokenizados (light/dark/high-contrast) e layouts responsivos para desktop e mobile;
+- integrar autenticação via Passport/JWT exposta pelo backend mantendo o UI desacoplado;
+- facilitar a evolução para whitelabel, produtos comerciais e dashboards internos.
+
+## Tecnologias críticas
+
+| Camada        | Ferramentas                                                 | Motivo                                                |
+| ------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| UI            | `React 19`, `react-router 7`, `Vite`                        | Cliente reativo com roteamento moderno e build rápido |
+| Estado/estilo | Framer Motion, tokens CSS                                   | Layouts responsivos e animações leves                 |
+| Qualidade     | TypeScript strict, ESLint flat config, React Router Typegen | Segurança em tempo de compilação e consistência       |
+| Infra         | Passport/JWT, `@react-router/node`, `@react-router/serve`   | Auth e rendering isomórfico com SSR                   |
+
+## Como rodar (ambiente local)
+
+```bash
+npm install
+npm run dev
+```
+
+## Principais scripts
+
+- `npm run lint `: `eslint . --ext .ts,.tsx` para checar padrões de código;
+- `npm run typecheck`: `react-router typegen && tsc` para validar rotas + tipos;
+- `npm run test`: vitest roda testes unitários existentes (ex.: componentes da UI);
+- `npm run dev`: servidor Vite + React Router Dev para desenvolvimento com HMR;
+- `npm run build`: compila o app para produção com `react-router build`;
+- `npm run start`: executa o build com `react-router-serve` e `dotenv` injetando variáveis;
+
+## Regras de contribuição
+
+- foco em estabilidade, testes e acessibilidade;
+- documente rotas/componentes novos na pasta `docs/` e no README principal;
+- mantenha o formato de componentes `Client`/`Server` alinhado ao React Router e evite efeitos colaterais no render;
+- o design system centra-se em `PageShell`, `SiteHeader`, `SiteSidebar` e `SiteFooter`, portanto novos layouts devem reaproveitar essas peças.

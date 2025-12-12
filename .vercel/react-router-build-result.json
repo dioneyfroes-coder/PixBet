@@ -1,0 +1,323 @@
+{
+  "buildManifest": {
+    "serverBundles": {
+      "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0": {
+        "id": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+        "file": "build/server/nodejs_eyJydW50aW1lIjoibm9kZWpzIn0/index.js",
+        "config": {
+          "runtime": "nodejs"
+        }
+      }
+    },
+    "routeIdToServerBundleId": {
+      "routes/home": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/sobre": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/contato": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/login": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/register": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/perfil": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/perfil.atividade": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/carteira": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/loja": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/jogos": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/games": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/games.$slug": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/auditoria": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
+    },
+    "routes": {
+      "root": {
+        "id": "root",
+        "file": "app/root.tsx",
+        "path": "",
+        "config": {}
+      },
+      "routes/home": {
+        "id": "routes/home",
+        "parentId": "root",
+        "file": "app/routes/home.tsx",
+        "index": true,
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/sobre": {
+        "id": "routes/sobre",
+        "parentId": "root",
+        "file": "app/routes/sobre.tsx",
+        "path": "sobre",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/contato": {
+        "id": "routes/contato",
+        "parentId": "root",
+        "file": "app/routes/contato.tsx",
+        "path": "contato",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/login": {
+        "id": "routes/login",
+        "parentId": "root",
+        "file": "app/routes/login.tsx",
+        "path": "login/*",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/register": {
+        "id": "routes/register",
+        "parentId": "root",
+        "file": "app/routes/register.tsx",
+        "path": "register",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/perfil": {
+        "id": "routes/perfil",
+        "parentId": "root",
+        "file": "app/routes/perfil.tsx",
+        "path": "perfil",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/perfil.atividade": {
+        "id": "routes/perfil.atividade",
+        "parentId": "root",
+        "file": "app/routes/perfil.atividade.tsx",
+        "path": "perfil/atividade",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/carteira": {
+        "id": "routes/carteira",
+        "parentId": "root",
+        "file": "app/routes/carteira.tsx",
+        "path": "carteira",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/loja": {
+        "id": "routes/loja",
+        "parentId": "root",
+        "file": "app/routes/loja.tsx",
+        "path": "loja",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/jogos": {
+        "id": "routes/jogos",
+        "parentId": "root",
+        "file": "app/routes/jogos.tsx",
+        "path": "jogos",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/games": {
+        "id": "routes/games",
+        "parentId": "root",
+        "file": "app/routes/games.tsx",
+        "path": "games",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/games.$slug": {
+        "id": "routes/games.$slug",
+        "parentId": "root",
+        "file": "app/routes/games.$slug.tsx",
+        "path": "games/:slug",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/auditoria": {
+        "id": "routes/auditoria",
+        "parentId": "root",
+        "file": "app/routes/auditoria.tsx",
+        "path": "auditoria",
+        "config": {
+          "runtime": "nodejs"
+        }
+      }
+    }
+  },
+  "reactRouterConfig": {
+    "appDirectory": "/home/dioney/Documentos/bet/frontBet/app",
+    "basename": "/",
+    "buildDirectory": "/home/dioney/Documentos/bet/frontBet/build",
+    "future": {
+      "v8_middleware": false,
+      "unstable_optimizeDeps": false,
+      "unstable_splitRouteModules": false,
+      "unstable_subResourceIntegrity": false,
+      "unstable_viteEnvironmentApi": false
+    },
+    "routes": {
+      "root": {
+        "id": "root",
+        "file": "root.tsx",
+        "path": ""
+      },
+      "routes/home": {
+        "id": "routes/home",
+        "parentId": "root",
+        "file": "routes/home.tsx",
+        "index": true
+      },
+      "routes/sobre": {
+        "id": "routes/sobre",
+        "parentId": "root",
+        "file": "routes/sobre.tsx",
+        "path": "sobre"
+      },
+      "routes/contato": {
+        "id": "routes/contato",
+        "parentId": "root",
+        "file": "routes/contato.tsx",
+        "path": "contato"
+      },
+      "routes/login": {
+        "id": "routes/login",
+        "parentId": "root",
+        "file": "routes/login.tsx",
+        "path": "login/*"
+      },
+      "routes/register": {
+        "id": "routes/register",
+        "parentId": "root",
+        "file": "routes/register.tsx",
+        "path": "register"
+      },
+      "routes/perfil": {
+        "id": "routes/perfil",
+        "parentId": "root",
+        "file": "routes/perfil.tsx",
+        "path": "perfil"
+      },
+      "routes/perfil.atividade": {
+        "id": "routes/perfil.atividade",
+        "parentId": "root",
+        "file": "routes/perfil.atividade.tsx",
+        "path": "perfil/atividade"
+      },
+      "routes/carteira": {
+        "id": "routes/carteira",
+        "parentId": "root",
+        "file": "routes/carteira.tsx",
+        "path": "carteira"
+      },
+      "routes/loja": {
+        "id": "routes/loja",
+        "parentId": "root",
+        "file": "routes/loja.tsx",
+        "path": "loja"
+      },
+      "routes/jogos": {
+        "id": "routes/jogos",
+        "parentId": "root",
+        "file": "routes/jogos.tsx",
+        "path": "jogos"
+      },
+      "routes/games": {
+        "id": "routes/games",
+        "parentId": "root",
+        "file": "routes/games.tsx",
+        "path": "games"
+      },
+      "routes/games.$slug": {
+        "id": "routes/games.$slug",
+        "parentId": "root",
+        "file": "routes/games.$slug.tsx",
+        "path": "games/:slug"
+      },
+      "routes/auditoria": {
+        "id": "routes/auditoria",
+        "parentId": "root",
+        "file": "routes/auditoria.tsx",
+        "path": "auditoria"
+      }
+    },
+    "routeDiscovery": {
+      "mode": "lazy",
+      "manifestPath": "/__manifest"
+    },
+    "serverBuildFile": "index.js",
+    "serverModuleFormat": "esm",
+    "ssr": true,
+    "unstable_routeConfig": [
+      {
+        "id": "root",
+        "path": "",
+        "file": "root.tsx",
+        "children": [
+          {
+            "file": "routes/home.tsx",
+            "index": true
+          },
+          {
+            "file": "routes/sobre.tsx",
+            "path": "sobre"
+          },
+          {
+            "file": "routes/contato.tsx",
+            "path": "contato"
+          },
+          {
+            "file": "routes/login.tsx",
+            "path": "login/*"
+          },
+          {
+            "file": "routes/register.tsx",
+            "path": "register"
+          },
+          {
+            "file": "routes/perfil.tsx",
+            "path": "perfil"
+          },
+          {
+            "file": "routes/perfil.atividade.tsx",
+            "path": "perfil/atividade"
+          },
+          {
+            "file": "routes/carteira.tsx",
+            "path": "carteira"
+          },
+          {
+            "file": "routes/loja.tsx",
+            "path": "loja"
+          },
+          {
+            "file": "routes/jogos.tsx",
+            "path": "jogos"
+          },
+          {
+            "file": "routes/games.tsx",
+            "path": "games"
+          },
+          {
+            "file": "routes/games.$slug.tsx",
+            "path": "games/:slug"
+          },
+          {
+            "file": "routes/auditoria.tsx",
+            "path": "auditoria"
+          }
+        ]
+      }
+    ]
+  },
+  "viteConfig": {
+    "build": {
+      "assetsDir": "assets"
+    }
+  }
+}
