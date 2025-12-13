@@ -170,7 +170,7 @@ describe('Carteira PIX flow', () => {
         'Pagamento enviado ao provedor, aguardando confirmação; o saldo será atualizado assim que o Pix for compensado.'
       )
     ).toBeVisible();
-    const confirmModalButton = screen.getByRole('button', { name: 'Atualizar saldo' });
+    const confirmModalButton = screen.getByRole('button', { name: 'Confirmar depósito' });
     expect(confirmModalButton).toBeEnabled();
   });
 
@@ -181,7 +181,7 @@ describe('Carteira PIX flow', () => {
 
     await waitFor(() => expect(screen.getByText('Finalize o depósito')).toBeVisible());
 
-    const refreshButton = screen.getByRole('button', { name: 'Atualizar saldo' });
+    const refreshButton = screen.getByRole('button', { name: 'Confirmar depósito' });
 
     mockGetMyWallet.mockResolvedValue({
       balance: { amount: 775000 },
