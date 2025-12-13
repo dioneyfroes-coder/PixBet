@@ -45,7 +45,8 @@ export const usersApi = {
       method: 'PATCH',
       body: payload,
       bodySchema: ProfileMutationSchema,
-      responseSchema: UserProfileSchema,
+      // allow backends that return empty/204 responses for profile update
+      responseSchema: UserProfileSchema.optional(),
       ...withAuth(options),
     }),
   updateEmail: (
@@ -56,7 +57,8 @@ export const usersApi = {
       method: 'PATCH',
       body: payload,
       bodySchema: EmailUpdateSchema,
-      responseSchema: UserProfileSchema,
+      // allow backends that return empty/204 responses for email update
+      responseSchema: UserProfileSchema.optional(),
       ...withAuth(options),
     }),
   updatePixKey: (
