@@ -1,0 +1,166 @@
+openapi: 3.0.3
+info:
+  title: Payments API - Withdraw
+  version: 1.0.0
+  description: API spec for requesting a PIX withdrawal. Includes optional password confirmation field.
+servers:
+  - url: /api
+
+paths:
+  /payments/withdraw:
+    post:
+      summary: Request a PIX withdrawal
+      description: |
+        Create a withdrawal request. The endpoint accepts an optional `password` field
+        that, when provided, will be validated by the payments service to confirm
+        the operation. The endpoint must be idempotent (Idempotency-Key header supported).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+          required: false
+          description: Optional idempotency key to make the request idempotent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawRequest'
+            examples:
+              basic:
+                value:
+                  amount: 150.5
+                  currency: BRL
+                  pixKey: "user@example.com"
+              withPassword:
+                value:
+                  amount: 200
+                  currency: BRL
+                  pixKey: "5511999999999"
+                  password: "user-transaction-password"
+      responses:
+        '200':
+          description: Withdrawal accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawResponse'
+              examples:
+                accepted:
+                  value:
+                    ok: true
+                    requestId: "wd_123456"
+                    status: "pending"
+        '400':
+          description: Bad Request — validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Unauthorized — authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — password invalid or insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity — business rule rejection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    WithdrawRequest:
+      type: object
+      required:
+        - amount
+        - currency
+        - pixKey
+      properties:
+        amount:
+          type: number
+          description: Amount to withdraw (decimal, in the account currency units, e.g., 150.50)
+          example: 150.5
+        currency:
+          type: string
+          description: ISO currency code (e.g., BRL)
+          example: BRL
+        pixKey:
+          type: string
+          description: Destination PIX key (email, phone, cpf/cnpj, or EVP)
+          example: user@example.com
+        password:
+          type: string
+          description: Optional account password to confirm the operation. If provided,
+            the payments service must validate it and reject the request with 403 when invalid.
+          example: user-transaction-password
+
+    WithdrawResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        requestId:
+          type: string
+          description: Internal request identifier
+          example: wd_123456
+        status:
+          type: string
+          description: Current request status (e.g., pending, processing, completed, failed)
+          example: pending
+        message:
+          type: string
+          description: Optional human-readable message
+
+    ErrorResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: 'Unauthorized'
+
+    ValidationError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: 'Validation failed'
+        details:
+          type: object
+          description: Structured error details (field-specific messages or API error data)
+          example:
+            formatted: 'Valor inválido: mínimo R$10,00'
+            issues:
+              amount: 'must be >= 10'
+
+  responses: {}
