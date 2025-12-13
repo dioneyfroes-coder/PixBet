@@ -76,6 +76,15 @@ export async function loader(args: Route.LoaderArgs) {
     return { items };
   } catch {
     // If backend doesn't expose store endpoint yet, fallback to i18n content
-    return {};
+    try {
+      const { localeMessages, defaultLocale } = await import('../i18n/config');
+      const messages = localeMessages[defaultLocale];
+      const products = (messages?.store?.products ?? []) as
+        | Array<{ id?: string; name: string; description?: string; price?: string | number }>
+        | undefined;
+      return { items: products ?? [] };
+    } catch {
+      return { items: [] };
+    }
   }
 }

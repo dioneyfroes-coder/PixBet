@@ -78,13 +78,31 @@ function hydrateRemoteGame(remote: RemoteGameDescriptor): GameDescriptor | null 
 }
 
 async function fetchAndHydrate(): Promise<GameDescriptor[]> {
-  const remote = await getGames();
+  let remote: RemoteGameDescriptor[] = [];
+  try {
+    remote = await getGames();
+  } catch (err) {
+    // If fetching remote registry fails, fall back to local built-in modules.
+    // Keep the error silent here; callers will receive the local registry instead.
+    remote = [];
+  }
   const hydrated = remote
     .map((item) => hydrateRemoteGame(item))
     .filter((item): item is GameDescriptor => Boolean(item));
-  registryCache = hydrated;
+  // If backend returned nothing, fall back to built-in local registry
+  const final = hydrated.length > 0 ? hydrated : Object.keys(moduleMap).map((slug) => ({
+    id: slug,
+    slug,
+    name: slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+    icon: '🎮',
+    category: DEFAULT_CATEGORY,
+    overview: '',
+    highlights: [],
+    loadComponent: moduleMap[slug],
+  } as GameDescriptor));
+  registryCache = final;
   cacheTimestamp = Date.now();
-  return hydrated;
+  return final;
 }
 
 export async function loadGameRegistry(options?: { force?: boolean }) {

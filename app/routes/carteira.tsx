@@ -26,7 +26,12 @@ import type { PaymentsClient as DepositPaymentsClient } from '../hooks/useDeposi
 import { requireAuth } from '../utils/auth.server';
 import type { Transaction, TransactionType } from '../types/wallet';
 import { useI18n } from '../i18n/i18n-provider';
-import type { WalletCopy, SummaryCardCopy, MonitoringCardCopy, WithdrawCardCopy } from '../types/i18n';
+import type {
+  WalletCopy,
+  SummaryCardCopy,
+  MonitoringCardCopy,
+  WithdrawCardCopy,
+} from '../types/i18n';
 import { cfg, formatMoney, formatMessage } from '../lib/config';
 import { getPageMeta } from '../i18n/page-copy';
 import { useAccountHydration } from '../hooks/useAccountHydration';
@@ -126,6 +131,8 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
   const [isProcessingWithdraw, startWithdrawTransition] = useTransition();
   const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const [pendingWithdrawAmount, setPendingWithdrawAmount] = useState<number | null>(null);
+  const [withdrawPassword, setWithdrawPassword] = useState('');
+  const [depositConfirmedByUser, setDepositConfirmedByUser] = useState(false);
   const [pixKeyModalOpen, setPixKeyModalOpen] = useState(false);
   const [pixKeyInput, setPixKeyInput] = useState('');
   const [isSavingPixKey, setIsSavingPixKey] = useState(false);
@@ -196,8 +203,9 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
   }, []);
 
   // Withdraw helpers (hook)
-  const { validateAmount: validateWithdrawAmount, requestWithdrawal } =
-    useWithdraw(ensurePaymentsClient as () => Promise<WithdrawPaymentsClient | null>);
+  const { validateAmount: validateWithdrawAmount, requestWithdrawal } = useWithdraw(
+    ensurePaymentsClient as () => Promise<WithdrawPaymentsClient | null>
+  );
 
   const refreshWalletData = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -229,7 +237,11 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
     createDeposit,
     closeDepositModal,
     syncDepositStatus,
-  } = useDeposit(ensurePaymentsClient as () => Promise<DepositPaymentsClient | null>, refreshWalletData, walletBalanceCents);
+  } = useDeposit(
+    ensurePaymentsClient as () => Promise<DepositPaymentsClient | null>,
+    refreshWalletData,
+    walletBalanceCents
+  );
 
   useEffect(() => {
     void refreshWalletData();
@@ -323,11 +335,18 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
     if (!activeDeposit || depositBaselineCents == null) {
       return;
     }
+    if (!depositConfirmedByUser) return;
     const expectedCents = depositBaselineCents + (activeDeposit.amountCents ?? 0);
     if (expectedCents > 0 && (walletBalanceCents ?? 0) >= expectedCents) {
       closeDepositModal();
+      setDepositConfirmedByUser(false);
     }
-  }, [activeDeposit, walletBalanceCents, depositBaselineCents, closeDepositModal]);
+  }, [activeDeposit, walletBalanceCents, depositBaselineCents, closeDepositModal, depositConfirmedByUser]);
+
+  const handleConfirmDeposit = useCallback(() => {
+    setDepositConfirmedByUser(true);
+    void syncDepositStatus();
+  }, [syncDepositStatus]);
 
   return (
     <PageShell title={walletCopy.title} description={walletCopy.description}>
@@ -378,7 +397,7 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
             depositBaselineCents={depositBaselineCents}
             isSyncing={isSyncing}
             closeDepositModal={closeDepositModal}
-            syncDepositStatus={syncDepositStatus}
+            syncDepositStatus={handleConfirmDeposit}
           />
         </FadeIn>
         <FadeIn>
@@ -464,11 +483,13 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
             <Button
               type="button"
               onClick={async () => {
-                if (!pixKeyInput || pixKeyInput.trim().length < 3) {
-                  setWithdrawNote({
-                    status: 'error',
-                    message: withdrawCopy.registerInvalid ?? 'Chave inválida',
-                  });
+                // reuse centralized validation used by profile
+                const { validatePixKey, normalizePixKey } = await import('../utils/pix');
+                const normalized = normalizePixKey(pixKeyInput ?? '');
+                const messagesForValidation = (withdrawCopy as unknown as Record<string, string>);
+                const validation = validatePixKey(normalized, messagesForValidation);
+                if (!validation.ok) {
+                  setWithdrawNote({ status: 'error', message: validation.message ?? (withdrawCopy.registerInvalid ?? 'Chave inválida') });
                   return;
                 }
                 setIsSavingPixKey(true);
@@ -478,7 +499,7 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
                     import('../lib/sdk/clients/_internal'),
                   ]);
                   const authOptions = await resolveAuthOptions();
-                  await usersApi.updatePixKey({ pixKey: pixKeyInput.trim() }, authOptions);
+                  await usersApi.updatePixKey({ pixKey: normalized }, authOptions);
                   // refresh local store
                   await refreshWalletData();
                   setPixKeyModalOpen(false);
@@ -539,7 +560,8 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
                   void (async () => {
                     const res = await requestWithdrawal(
                       pendingWithdrawAmount,
-                      String(displayedPixKey ?? '').trim()
+                      String(displayedPixKey ?? '').trim(),
+                      withdrawPassword || undefined
                     );
                     if (!res.ok) {
                       setWithdrawNote({
@@ -552,8 +574,12 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
                       });
                       return;
                     }
-                    setWithdrawNote({ status: 'success', message: withdrawCopy.successNote ?? 'Saque solicitado' });
+                    setWithdrawNote({
+                      status: 'success',
+                      message: withdrawCopy.successNote ?? 'Saque solicitado',
+                    });
                     setWithdrawAmount('');
+                    setWithdrawPassword('');
                     await refreshWalletData();
                     setPendingWithdrawAmount(null);
                   })();
@@ -572,6 +598,18 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
           <p className="text-sm text-[var(--color-muted)]">
             {withdrawCopy.confirmHint ?? 'Você está prestes a solicitar um saque.'}
           </p>
+          <div className="space-y-2">
+            <label htmlFor="withdraw-password" className="text-sm font-medium">
+              Senha (opcional)
+            </label>
+            <Input
+              id="withdraw-password"
+              type="password"
+              value={withdrawPassword}
+              onChange={(e) => setWithdrawPassword(e.target.value)}
+              placeholder="Senha da conta"
+            />
+          </div>
           <div className="rounded-2xl bg-[var(--color-muted-foreground)]/5 p-4">
             <p className="text-sm text-[var(--color-muted)]">{withdrawCopy.amountLabel}</p>
             <p className="text-2xl font-semibold">
