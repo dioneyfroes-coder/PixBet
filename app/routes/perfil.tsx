@@ -11,10 +11,11 @@ import { FadeIn } from '../components/animation';
 import Notifications from '../components/profile/Notifications';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import Security from '../components/profile/Security';
 import { Input } from '../components/ui/input';
 import { Modal } from '../components/ui/modal';
-import { Toggle } from '../components/ui/toggle';
+import PersonalForm from '../components/profile/PersonalForm';
+import PixKeyCard from '../components/profile/PixKeyCard';
+
 import { requireAuth } from '../utils/auth.server';
 import { useI18n } from '../i18n/i18n-provider';
 import { usersApi } from '../lib/sdk/modules/users';
@@ -72,10 +73,9 @@ export default function Perfil() {
     _walletBalanceCents ?? initialAccountSnapshot?.wallet?.balance?.amount ?? null;
   const { messages } = useI18n();
   const profileCopy: ProfileCopy = messages.profile;
-  const personalForm = profileCopy.personalForm as unknown as Record<string, unknown>;
   const walletCopy = messages.wallet as WalletCopy;
   const getPersonalMsg = (key: string): string | undefined => {
-    const v = (profileCopy.personalForm as unknown as Record<string, unknown>)[key];
+    const v = (profileCopy.personalForm as ProfileCopy['personalForm'])[key as keyof ProfileCopy['personalForm']];
     return typeof v === 'string' ? v : undefined;
   };
   const summaryCard = walletCopy.summaryCard;
@@ -138,7 +138,7 @@ export default function Perfil() {
         name: normalized.name ?? (composedName.length ? composedName : current.name),
         email: normalized.email ?? current.email,
         phone: normalized.phone ?? current.phone,
-      
+
         document: normalized.document ?? current.document,
         bio: normalized.bio ?? current.bio,
       };
@@ -198,11 +198,19 @@ export default function Perfil() {
         );
         // Update additional free-form profile fields if provided
         const extra: Record<string, unknown> = {};
-        if (profileForm.phone && profileForm.phone.trim().length > 0) extra.phone = profileForm.phone.trim();
-        if (profileForm.document && profileForm.document.trim().length > 0) extra.document = profileForm.document.trim();
-        if (profileForm.bio && profileForm.bio.trim().length > 0) extra.bio = profileForm.bio.trim();
+        if (profileForm.phone && profileForm.phone.trim().length > 0)
+          extra.phone = profileForm.phone.trim();
+        if (profileForm.document && profileForm.document.trim().length > 0)
+          extra.document = profileForm.document.trim();
+        if (profileForm.bio && profileForm.bio.trim().length > 0)
+          extra.bio = profileForm.bio.trim();
         if (Object.keys(extra).length > 0) {
-          await sendApiRequest('/users/me', { method: 'PATCH', body: extra, token: authOptions.token, target: 'api' });
+          await sendApiRequest('/users/me', {
+            method: 'PATCH',
+            body: extra,
+            token: authOptions.token,
+            target: 'api',
+          });
         }
         setProfileStatus('saved');
         window.setTimeout(() => setProfileStatus('idle'), 1200);
@@ -369,7 +377,7 @@ export default function Perfil() {
     })();
   };
 
-  const openEmailModal = () => {
+  const _openEmailModal = () => {
     setEmailInput(profileForm.email ?? '');
     setEmailModalOpen(true);
   };
@@ -416,7 +424,11 @@ export default function Perfil() {
     setIsDeletingAccount(true);
     try {
       const authOptions = await resolveAuthOptions();
-      await sendApiRequest('/users/me', { method: 'DELETE', target: 'api', token: authOptions.token });
+      await sendApiRequest('/users/me', {
+        method: 'DELETE',
+        target: 'api',
+        token: authOptions.token,
+      });
       // best-effort: navigate to home or show message; leave to caller to logout
       setDeleteModalOpen(false);
     } catch (err) {
@@ -448,152 +460,24 @@ export default function Perfil() {
       {/* Recent history removed from profile — activities are centralized in Atividades */}
 
       <FadeIn>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">{profileCopy.personalForm.title}</CardTitle>
-            <p className="text-sm text-[var(--color-muted)]">
-              {profileCopy.personalForm.description}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-5" onSubmit={handleProfileSubmit}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="profile-name">
-                    {profileCopy.personalForm.fields.name.label}
-                  </label>
-                  <Input
-                    id="profile-name"
-                    value={profileForm.name}
-                    onChange={(event) =>
-                      setProfileForm((current) => ({ ...current, name: event.target.value }))
-                    }
-                    autoComplete="name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="profile-email">
-                    {profileCopy.personalForm.fields.email.label}
-                  </label>
-                  <Input
-                    id="profile-email"
-                    type="email"
-                    value={profileForm.email}
-                    onChange={(event) =>
-                      setProfileForm((current) => ({ ...current, email: event.target.value }))
-                    }
-                    autoComplete="email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="profile-phone">
-                    {profileCopy.personalForm.fields.phone.label}
-                  </label>
-                  <Input
-                    id="profile-phone"
-                    value={profileForm.phone}
-                    onChange={(event) =>
-                      setProfileForm((current) => ({ ...current, phone: event.target.value }))
-                    }
-                    inputMode="tel"
-                    autoComplete="tel"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="profile-document">
-                    {profileCopy.personalForm.fields.document.label}
-                  </label>
-                  <Input
-                    id="profile-document"
-                    value={profileForm.document}
-                    onChange={(event) =>
-                      setProfileForm((current) => ({ ...current, document: event.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="profile-bio">
-                  {profileCopy.personalForm.fields.notes.label}
-                </label>
-                <textarea
-                  id="profile-bio"
-                  value={profileForm.bio}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({ ...current, bio: event.target.value }))
-                  }
-                  className="min-h-[120px] w-full rounded-2xl border border-[color:var(--color-border)] bg-[var(--color-surface)] p-3 text-sm text-[var(--color-text)] outline-none focus-visible:ring focus-visible:ring-[color:var(--color-primary)]/40"
-                  placeholder={profileCopy.personalForm.fields.notes.placeholder}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                <Button type="submit" disabled={profileStatus === 'saving'}>
-                  {profileStatus === 'saving'
-                    ? profileCopy.personalForm.savingLabel
-                    : profileCopy.personalForm.saveCta}
-                </Button>
-                <Security />
-                {profileStatus === 'saved' && (
-                  <span className="text-sm text-emerald-400">
-                    {profileCopy.personalForm.savedNote}
-                  </span>
-                )}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <PersonalForm
+          profileCopy={profileCopy.personalForm}
+          profileForm={profileForm}
+          setProfileForm={setProfileForm}
+          profileStatus={profileStatus}
+          handleProfileSubmit={handleProfileSubmit}
+        />
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Chave PIX para saques</CardTitle>
-            <p className="text-sm text-[var(--color-muted)]">
-              Utilize uma chave PIX padrão para agilizar saques. Essa chave será usada como fallback
-              quando não informar outra chave no momento do saque.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="profile-pixkey">
-                  {walletCopy?.withdrawCard?.pixKeyLabel ?? 'Chave PIX'}
-                </label>
-                <Input
-                  id="profile-pixkey"
-                  value={pixKey ?? ''}
-                  onChange={(e) => setPixKey(e.target.value)}
-                  placeholder="email, cpf/cnpj, telefone ou chave aleatória"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <Button type="button" onClick={handlePixSave} disabled={pixStatus === 'saving'}>
-                  {pixStatus === 'saving' ? 'Salvando...' : 'Salvar chave PIX'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    setPixKey('');
-                    await handlePixSave();
-                  }}
-                >
-                  Remover
-                </Button>
-                {pixStatus === 'saved' && (
-                  <span className="text-sm text-emerald-400">
-                    {profileCopy.personalForm.savedNote}
-                  </span>
-                )}
-                {pixStatus === 'error' && (
-                  <span className="text-sm text-rose-400">
-                    {pixError ?? getPersonalMsg('pixKeyInvalid')}
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <PixKeyCard
+          walletCopy={walletCopy}
+          pixKey={pixKey}
+          setPixKey={(v: string) => setPixKey(v)}
+          pixStatus={pixStatus}
+          pixError={pixError}
+          handlePixSave={handlePixSave}
+        />
       </FadeIn>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -650,7 +534,7 @@ export default function Perfil() {
                   token: authOptions?.token,
                   target: 'api',
                 });
-              } catch (err) {
+              } catch {
                 // ignore failures for now; backend may not exist yet
               }
             }}
@@ -661,8 +545,8 @@ export default function Perfil() {
       <Modal
         open={emailModalOpen}
         onClose={() => setEmailModalOpen(false)}
-        title={(personalForm['changeEmailTitle'] as string | undefined) ?? 'Alterar e-mail'}
-        description={(personalForm['changeEmailDescription'] as string | undefined) ?? ''}
+        title={getPersonalMsg('changeEmailTitle') ?? 'Alterar e-mail'}
+        description={getPersonalMsg('changeEmailDescription') ?? ''}
         footer={
           <>
             <Button type="button" onClick={handleSaveEmail} disabled={isSavingEmail}>
@@ -675,8 +559,15 @@ export default function Perfil() {
         }
       >
         <div className="space-y-3">
-          <label className="text-sm font-medium" htmlFor="modal-email-input">{profileCopy.personalForm.fields.email.label}</label>
-          <Input id="modal-email-input" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} type="email" />
+          <label className="text-sm font-medium" htmlFor="modal-email-input">
+            {profileCopy.personalForm.fields.email.label}
+          </label>
+          <Input
+            id="modal-email-input"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            type="email"
+          />
         </div>
       </Modal>
 
@@ -684,8 +575,8 @@ export default function Perfil() {
       <Modal
         open={passwordModalOpen}
         onClose={() => setPasswordModalOpen(false)}
-        title={(personalForm['changePasswordTitle'] as string | undefined) ?? 'Alterar senha'}
-        description={(personalForm['changePasswordDescription'] as string | undefined) ?? ''}
+        title={getPersonalMsg('changePasswordTitle') ?? 'Alterar senha'}
+        description={getPersonalMsg('changePasswordDescription') ?? ''}
         footer={
           <>
             <Button type="button" onClick={handleChangePassword} disabled={isChangingPassword}>
@@ -698,12 +589,33 @@ export default function Perfil() {
         }
       >
         <div className="space-y-3">
-          <label className="text-sm font-medium" htmlFor="current-password">Senha atual</label>
-          <Input id="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} type="password" />
-          <label className="text-sm font-medium" htmlFor="new-password">Nova senha</label>
-          <Input id="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} type="password" />
-          <label className="text-sm font-medium" htmlFor="confirm-password">Confirmar nova senha</label>
-          <Input id="confirm-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} type="password" />
+          <label className="text-sm font-medium" htmlFor="current-password">
+            Senha atual
+          </label>
+          <Input
+            id="current-password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            type="password"
+          />
+          <label className="text-sm font-medium" htmlFor="new-password">
+            Nova senha
+          </label>
+          <Input
+            id="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            type="password"
+          />
+          <label className="text-sm font-medium" htmlFor="confirm-password">
+            Confirmar nova senha
+          </label>
+          <Input
+            id="confirm-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            type="password"
+          />
         </div>
       </Modal>
 
@@ -711,11 +623,16 @@ export default function Perfil() {
       <Modal
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title={(personalForm['deleteAccountTitle'] as string | undefined) ?? 'Excluir conta'}
-        description={(personalForm['deleteAccountDescription'] as string | undefined) ?? 'Esta ação é irreversível.'}
+        title={getPersonalMsg('deleteAccountTitle') ?? 'Excluir conta'}
+        description={getPersonalMsg('deleteAccountDescription') ?? 'Esta ação é irreversível.'}
         footer={
           <>
-            <Button type="button" variant="destructive" onClick={handleDeleteAccount} disabled={isDeletingAccount}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount}
+            >
               {isDeletingAccount ? 'Excluindo...' : 'Excluir conta'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setDeleteModalOpen(false)}>
@@ -725,7 +642,9 @@ export default function Perfil() {
         }
       >
         <div className="space-y-3">
-          <p className="text-sm text-[var(--color-muted)]">{(personalForm['deleteConfirmNote'] as string | undefined) ?? 'Digite "DELETAR" para confirmar.'}</p>
+          <p className="text-sm text-[var(--color-muted)]">
+            {getPersonalMsg('deleteConfirmNote') ?? 'Digite "DELETAR" para confirmar.'}
+          </p>
           <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} />
         </div>
       </Modal>

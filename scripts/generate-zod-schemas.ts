@@ -88,7 +88,8 @@ function schemaToZod(
       }
       const props = Object.entries(ss.properties as Record<string, unknown>).map(
         ([propName, propSchema]) => {
-          const required = Array.isArray(ss.required) && (ss.required as unknown[]).includes(propName);
+          const required =
+            Array.isArray(ss.required) && (ss.required as unknown[]).includes(propName);
           const z = schemaToZod(propName, propSchema, components, refs);
           return `  ${JSON.stringify(propName)}: ${required ? z : `${z}.optional()`}`;
         }
@@ -102,8 +103,13 @@ function schemaToZod(
         const inter = parts.reduce((acc, p) => `z.intersection(${acc}, ${p})`);
         return wrapNullable(inter);
       }
-      if (Array.isArray((s as Record<string, unknown>).oneOf) || Array.isArray((s as Record<string, unknown>).anyOf)) {
-        const arr = ((s as Record<string, unknown>).oneOf as unknown[]) || ((s as Record<string, unknown>).anyOf as unknown[]);
+      if (
+        Array.isArray((s as Record<string, unknown>).oneOf) ||
+        Array.isArray((s as Record<string, unknown>).anyOf)
+      ) {
+        const arr =
+          ((s as Record<string, unknown>).oneOf as unknown[]) ||
+          ((s as Record<string, unknown>).anyOf as unknown[]);
         const parts = arr.map((sd, i) => schemaToZod(name + 'Union' + i, sd, components, refs));
         return wrapNullable(`z.union([${parts.join(', ')}])`);
       }
@@ -111,7 +117,6 @@ function schemaToZod(
     }
   }
 }
- 
 
 function generate(doc: OpenAPIDoc) {
   const components = doc.components || {};
@@ -157,7 +162,9 @@ function generate(doc: OpenAPIDoc) {
     });
 
     const queue: string[] = [];
-    inDegree.forEach((deg, n) => { if (deg === 0) queue.push(n); });
+    inDegree.forEach((deg, n) => {
+      if (deg === 0) queue.push(n);
+    });
     const out: string[] = [];
     while (queue.length) {
       const n = queue.shift()!;
@@ -180,13 +187,17 @@ function generate(doc: OpenAPIDoc) {
 
   // emit schemas in dependency order when possible
   sortedNames.forEach((name) => {
-    const originalKey = Object.keys(schemas).find((k) => safeName(k) === name) as string | undefined;
+    const originalKey = Object.keys(schemas).find((k) => safeName(k) === name) as
+      | string
+      | undefined;
     const value = originalKey ? (schemas as Record<string, unknown>)[originalKey] : undefined;
     try {
       const zodExp = schemaToZod(name, value, components);
       lines.push(`export const ${name} = ${zodExp};\n`);
     } catch {
-      lines.push(`// failed to generate schema for ${originalKey || name} - falling back to z.unknown()`);
+      lines.push(
+        `// failed to generate schema for ${originalKey || name} - falling back to z.unknown()`
+      );
       lines.push(`export const ${name} = z.unknown();\n`);
     }
   });

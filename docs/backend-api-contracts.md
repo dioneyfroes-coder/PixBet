@@ -3,6 +3,7 @@
 Este documento descreve endpoints sugeridos (métodos, payloads e respostas) que o frontend espera para suportar funcionalidades implementadas: Loja, Usuários (notificações / PIX), Carteira (depósitos/saques) e Jogos (CoinFlip).
 
 Observações:
+
 - Todos os endpoints autenticados devem usar cabeçalho `Authorization: Bearer <token>` (ou outro esquema definido no projeto).
 - Os exemplos usam JSON. Campos `amount` estão em unidades decimais BRL (ex: 250.00). Campos `amountCents` usados em algumas respostas são inteiros em centavos (ex: 25000).
 
@@ -42,7 +43,7 @@ Observações:
       "id": "user_1",
       "email": "user@example.com",
       "pixKey": "user-pix@bank",
-      "preferences": {"locale":"pt-BR"}
+      "preferences": { "locale": "pt-BR" }
     }
     ```
 
@@ -84,16 +85,17 @@ Endpoints para criar depósitos PIX e solicitar saques.
   - Body
     ```json
     {
-      "amount": 250.00,
+      "amount": 250.0,
       "currency": "BRL",
       "method": "PIX"
     }
     ```
   - Response 201
+
     ```json
     {
       "id": "pix_req_1",
-      "amount": 250.00,
+      "amount": 250.0,
       "amountCents": 25000,
       "expiresAt": "2025-12-12T12:34:56.000Z",
       "qrcode": "data:image/png;base64,...",
@@ -111,7 +113,7 @@ Endpoints para criar depósitos PIX e solicitar saques.
   - Body
     ```json
     {
-      "amount": 100.00,
+      "amount": 100.0,
       "currency": "BRL",
       "method": "PIX",
       "pixKey": "user-pix@bank"
@@ -132,8 +134,8 @@ Endpoints para criar depósitos PIX e solicitar saques.
     {
       "id": "coinflip",
       "enabled": true,
-      "minBet": 1.00,
-      "maxBet": 1000.00,
+      "minBet": 1.0,
+      "maxBet": 1000.0,
       "payoutMultiplier": 2.0,
       "currency": "BRL"
     }
@@ -142,7 +144,19 @@ Endpoints para criar depósitos PIX e solicitar saques.
 - GET /games/coin-flip/history?limit=10
   - Response 200
     ```json
-    { "rounds": [ { "id":"r1","choice":"HEADS","wager":10.0,"result":"WIN","outcome":"HEADS","payoutAmount":20.0,"createdAt":"..." } ] }
+    {
+      "rounds": [
+        {
+          "id": "r1",
+          "choice": "HEADS",
+          "wager": 10.0,
+          "result": "WIN",
+          "outcome": "HEADS",
+          "payoutAmount": 20.0,
+          "createdAt": "..."
+        }
+      ]
+    }
     ```
 
 - GET /games/coin-flip/feed
@@ -156,7 +170,15 @@ Endpoints para criar depósitos PIX e solicitar saques.
   - Response 200
     ```json
     {
-      "round": { "id": "r2", "choice":"HEADS", "wager":10.0, "result":"PENDING|WIN|LOSE", "outcome":"HEADS|TAILS", "payoutAmount":20.0, "createdAt":"..." },
+      "round": {
+        "id": "r2",
+        "choice": "HEADS",
+        "wager": 10.0,
+        "result": "PENDING|WIN|LOSE",
+        "outcome": "HEADS|TAILS",
+        "payoutAmount": 20.0,
+        "createdAt": "..."
+      },
       "wallet": { "balance": 123.45 }
     }
     ```
@@ -173,5 +195,6 @@ Endpoints para criar depósitos PIX e solicitar saques.
 ---
 
 ## Notas finais
+
 - O frontend já trata falhas de integração com fallback gracioso (mensagens e UX). Ainda assim, implementar esses endpoints permitirá maior consistência.
 - Se quiser, posso gerar um `openapi.yaml` baseado nessas definições para compartilhar com a equipe backend.

@@ -5,7 +5,7 @@ Este documento descreve um plano inicial para começar melhorias de UX e a intro
 Objetivos de curto prazo (rápido impacto)
 
 - Corrigir micro-interações críticas na carteira (depósito/saque).
-- Garantir acessibilidade de formulários (labels, ids, aria-*).
+- Garantir acessibilidade de formulários (labels, ids, aria-\*).
 - Adicionar cobertura E2E para fluxos principais: login, depósito PIX, saque PIX, upload de documentos no perfil.
 
 Ferramenta recomendada para E2E

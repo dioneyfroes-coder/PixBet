@@ -57,6 +57,19 @@ export const createNetworkError = (cause: unknown) =>
 
 export const summarizeClientError = (err: unknown): string => {
   if (err instanceof ApiClientError) {
+    // Prefer human-friendly message and include any formatted details
+    const details = err.details as Record<string, unknown> | null | undefined;
+    const formatted = details?.formatted ?? details?.issues ?? undefined;
+    if (typeof formatted === 'string' && formatted.trim()) {
+      return `${err.message}: ${formatted}`;
+    }
+    try {
+      if (formatted && typeof formatted === 'object') {
+        return `${err.message}: ${JSON.stringify(formatted)}`;
+      }
+    } catch {
+      // ignore stringify errors
+    }
     return err.message;
   }
 

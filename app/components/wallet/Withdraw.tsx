@@ -13,7 +13,11 @@ type Props = {
   withdrawDisabled: boolean;
   isProcessingWithdraw: boolean;
   withdrawLimitLabel?: string | null;
-  withdrawNote: { status: 'success' | 'error'; message: string } | null;
+  withdrawNote: {
+    status: 'success' | 'error';
+    message: string;
+    details?: Record<string, unknown> | null;
+  } | null;
   onOpenPixKeyModal: () => void;
   onSubmit: (e: React.FormEvent) => void;
   withdrawStatusLabel?: string | null;
@@ -44,7 +48,9 @@ export default function Withdraw({
         {withdrawStatusLabel ? (
           <span
             className={`inline-flex min-w-[10rem] justify-center rounded-full px-3 py-1 text-xs font-semibold ${
-              withdrawDisabled ? 'bg-amber-500/10 text-amber-200' : 'bg-emerald-500/10 text-emerald-200'
+              withdrawDisabled
+                ? 'bg-amber-500/10 text-amber-200'
+                : 'bg-emerald-500/10 text-emerald-200'
             }`}
           >
             {withdrawStatusLabel}
@@ -71,10 +77,16 @@ export default function Withdraw({
           {displayedPixKey ? (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium">{withdrawCopy.pixRegisteredLabel ?? 'Chave PIX'}</label>
+                <label className="text-sm font-medium">
+                  {withdrawCopy.pixRegisteredLabel ?? 'Chave PIX'}
+                </label>
                 <Input id="pix-key-registered" value={String(displayedPixKey)} disabled />
               </div>
-              <Button type="submit" disabled={withdrawDisabled || isProcessingWithdraw} className="w-full">
+              <Button
+                type="submit"
+                disabled={withdrawDisabled || isProcessingWithdraw}
+                className="w-full"
+              >
                 {isProcessingWithdraw ? withdrawCopy.submitting : withdrawCopy.submit}
               </Button>
               <div className="mt-2 flex justify-between">
@@ -103,9 +115,22 @@ export default function Withdraw({
           </div>
         ) : null}
         {withdrawNote && (
-          <p className={`mt-4 text-sm ${withdrawNote.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-            {withdrawNote.message}
-          </p>
+          <>
+            <p
+              className={`mt-4 text-sm ${withdrawNote.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}
+            >
+              {withdrawNote.message}
+            </p>
+            {withdrawNote.details?.formatted &&
+            typeof withdrawNote.details.formatted === 'string' ? (
+              <p className="text-sm text-red-300">{String(withdrawNote.details.formatted)}</p>
+            ) : null}
+            {withdrawNote.details?.issues && typeof withdrawNote.details.issues === 'object' ? (
+              <pre className="text-xs mt-2 whitespace-pre-wrap text-red-300">
+                {JSON.stringify(withdrawNote.details.issues, null, 2)}
+              </pre>
+            ) : null}
+          </>
         )}
       </CardContent>
     </Card>

@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import useWithdraw from '../useWithdraw';
 import type { PixChannelState } from '../../services/wallet-service';
+import type { PaymentsClient as WithdrawPaymentsClient } from '../useWithdraw';
 
 describe('useWithdraw', () => {
-  let ensurePaymentsClient: () => Promise<unknown | null>;
+  let ensurePaymentsClient: () => Promise<WithdrawPaymentsClient | null>;
 
   beforeEach(() => {
     ensurePaymentsClient = async () => null;
@@ -57,7 +58,7 @@ describe('useWithdraw', () => {
 
   it('requestWithdrawal returns ok when client resolves', async () => {
     const requestPixWithdrawal = vi.fn().mockResolvedValue(true);
-    ensurePaymentsClient = async () => ({ requestPixWithdrawal });
+    ensurePaymentsClient = async () => ({ requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'] });
     const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
     let out: { ok: boolean; reason?: string } | undefined;
     await act(async () => {
@@ -69,7 +70,7 @@ describe('useWithdraw', () => {
 
   it('requestWithdrawal returns request_failed when client throws', async () => {
     const requestPixWithdrawal = vi.fn().mockRejectedValue(new Error('boom'));
-    ensurePaymentsClient = async () => ({ requestPixWithdrawal });
+    ensurePaymentsClient = async () => ({ requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'] });
     const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
     let out: { ok: boolean; reason?: string } | undefined;
     await act(async () => {
@@ -79,6 +80,28 @@ describe('useWithdraw', () => {
     if (out) {
       expect(out.ok).toBe(false);
       expect(out.reason).toBe('request_failed');
+    }
+  });
+
+  it('returns formatted message when payments client throws ApiClientError', async () => {
+    const { ApiClientError } = await import('../../lib/sdk/core/errors');
+    const backendErr = new ApiClientError('Withdraw failed', {
+      status: 422,
+      details: { formatted: 'Conta inválida: CPF ausente' },
+    });
+
+    const requestPixWithdrawal = vi.fn().mockRejectedValue(backendErr);
+    ensurePaymentsClient = async () => ({ requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'] });
+    const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
+    let out: { ok: boolean; reason?: string; message?: string } | undefined;
+    await act(async () => {
+      out = await result.current.requestWithdrawal(100, 'pix-key');
+    });
+    expect(out).toBeDefined();
+    if (out) {
+      expect(out.ok).toBe(false);
+      expect(out.reason).toBe('request_failed');
+      expect(out.message).toContain('Conta inválida');
     }
   });
 });

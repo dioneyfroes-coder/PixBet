@@ -62,7 +62,11 @@ export default function Security() {
     setIsDeletingAccount(true);
     try {
       const authOptions = await resolveAuthOptions();
-      await sendApiRequest('/users/me', { method: 'DELETE', target: 'api', token: authOptions.token });
+      await sendApiRequest('/users/me', {
+        method: 'DELETE',
+        target: 'api',
+        token: authOptions.token,
+      });
       setDeleteModalOpen(false);
     } catch (err) {
       console.error('failed to delete account', err);
@@ -100,8 +104,15 @@ export default function Security() {
         }
       >
         <div className="space-y-3">
-          <label className="text-sm font-medium">E-mail</label>
-          <Input value={emailInput} onChange={(e) => setEmailInput(e.target.value)} type="email" />
+          <label htmlFor="email-input" className="text-sm font-medium">
+            E-mail
+          </label>
+          <Input
+            id="email-input"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            type="email"
+          />
         </div>
       </Modal>
 
@@ -122,12 +133,33 @@ export default function Security() {
         }
       >
         <div className="space-y-3">
-          <label className="text-sm font-medium">Senha atual</label>
-          <Input value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} type="password" />
-          <label className="text-sm font-medium">Nova senha</label>
-          <Input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} type="password" />
-          <label className="text-sm font-medium">Confirmar nova senha</label>
-          <Input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} type="password" />
+          <label htmlFor="current-password" className="text-sm font-medium">
+            Senha atual
+          </label>
+          <Input
+            id="current-password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            type="password"
+          />
+          <label htmlFor="new-password" className="text-sm font-medium">
+            Nova senha
+          </label>
+          <Input
+            id="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            type="password"
+          />
+          <label htmlFor="confirm-password" className="text-sm font-medium">
+            Confirmar nova senha
+          </label>
+          <Input
+            id="confirm-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            type="password"
+          />
         </div>
       </Modal>
 
@@ -138,7 +170,12 @@ export default function Security() {
         description={'Esta ação é irreversível.'}
         footer={
           <>
-            <Button type="button" variant="destructive" onClick={handleDeleteAccount} disabled={isDeletingAccount}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount}
+            >
               {isDeletingAccount ? 'Excluindo...' : 'Excluir conta'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setDeleteModalOpen(false)}>
@@ -148,8 +185,14 @@ export default function Security() {
         }
       >
         <div className="space-y-3">
-          <p className="text-sm text-[var(--color-muted)]">Digite "DELETAR" para confirmar.</p>
-          <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} />
+          <p className="text-sm text-[var(--color-muted)]">
+            Digite &quot;DELETAR&quot; para confirmar.
+          </p>
+          <Input
+            id="delete-confirm"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+          />
         </div>
       </Modal>
     </div>

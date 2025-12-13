@@ -52,6 +52,48 @@
   --token-color-neutral-800: #0f172a;
   --token-color-neutral-900: #020617;
 
+  /* Coin visuals (theme tokens for coin component) */
+  --token-coin-surface-1: var(--token-color-neutral-0);
+  --token-coin-surface-2: var(--token-color-neutral-25);
+  --token-coin-surface-3: var(--token-color-neutral-100);
+  --token-coin-rim: var(--token-color-neutral-200);
+  --token-coin-edge-dark: rgba(0, 0, 0, 0.18);
+  --token-coin-ridges-color: rgba(0, 0, 0, 0.06);
+  --token-coin-highlight: rgba(255, 255, 255, 0.25);
+
+  /* Theme-specific overrides for coin visuals */
+  [data-theme='light'] {
+    --token-coin-surface-1: var(--token-color-neutral-0);
+    --token-coin-surface-2: var(--token-color-neutral-25);
+    --token-coin-surface-3: var(--token-color-neutral-50);
+    --token-coin-rim: var(--token-color-neutral-200);
+    --token-coin-edge-dark: rgba(0, 0, 0, 0.18);
+    --token-coin-ridges-color: rgba(0, 0, 0, 0.06);
+    --token-coin-highlight: rgba(255, 255, 255, 0.25);
+  }
+
+  [data-theme='dark'] {
+    /* darker surfaces but still readable highlights */
+    --token-coin-surface-1: var(--token-color-neutral-700);
+    --token-coin-surface-2: var(--token-color-neutral-800);
+    --token-coin-surface-3: var(--token-color-neutral-900);
+    --token-coin-rim: var(--token-color-neutral-300);
+    --token-coin-edge-dark: rgba(0, 0, 0, 0.4);
+    --token-coin-ridges-color: rgba(255, 255, 255, 0.04);
+    --token-coin-highlight: rgba(255, 255, 255, 0.08);
+  }
+
+  [data-theme='high-contrast'] {
+    /* very strong contrasts for accessibility */
+    --token-coin-surface-1: #ffffff;
+    --token-coin-surface-2: #fff9db;
+    --token-coin-surface-3: #fff3a8;
+    --token-coin-rim: #000000;
+    --token-coin-edge-dark: rgba(0, 0, 0, 0.6);
+    --token-coin-ridges-color: rgba(0, 0, 0, 0.2);
+    --token-coin-highlight: #ffff00;
+  }
+
   /* Brand / primary */
   --token-color-brand-50: #e0f2fe;
   --token-color-brand-100: #bae6fd;

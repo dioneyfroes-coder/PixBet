@@ -203,7 +203,9 @@ describe('Carteira PIX flow', () => {
     await user.click(withdrawButton);
 
     // New flow: opening the confirmation modal, then confirming triggers the API call
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirmar saque' })).toBeVisible());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Confirmar saque' })).toBeVisible()
+    );
     const confirmButton = screen.getByRole('button', { name: 'Confirmar saque' });
     await user.click(confirmButton);
 

@@ -40,6 +40,7 @@ export type WithdrawCardCopy = {
   pixRegisteredLabel?: string;
   missingPixNote?: string;
   ctaRegisterPix?: string;
+  registerLabel?: string;
   registerTitle?: string;
   registerDescription?: string;
   registerInvalid?: string;
@@ -56,6 +57,9 @@ export type WithdrawCardCopy = {
   successNote?: string;
   requestFail?: string;
   pausedHelper?: string;
+  /** optional helpers to describe min/max limits */
+  limitsHelper?: { range?: string; minOnly?: string; maxOnly?: string };
+  status?: { active?: string; paused?: string };
 };
 
 export type SummaryCardCopy = {
@@ -87,19 +91,6 @@ export type MonitoringCardCopy = {
 
 export type ChannelsCopy = Record<string, string>;
 export type StatusesCopy = Record<string, string>;
-
-export type WalletCopy = {
-  depositCard?: DepositCardCopy;
-  withdrawCard?: WithdrawCardCopy;
-  summaryCard?: SummaryCardCopy;
-  monitoringCard?: MonitoringCardCopy;
-  channels?: ChannelsCopy;
-  statuses?: StatusesCopy;
-  errors?: Record<string, string>;
-  pixUnavailableFallback?: string;
-  connectionStates?: Record<string, string>;
-  timeSince?: Record<string, string>;
-};
 
 export default {} as never;
 import type { TranslationMessages } from '../i18n/config';

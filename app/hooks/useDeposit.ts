@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PixRequest } from '../types/wallet';
 import type { PixChannelState } from '../services/wallet-service';
+import { summarizeClientError, ApiClientError } from '../lib/sdk/core/errors';
 
-type PaymentsClient = {
+export type PaymentsClient = {
   createPixDeposit?: (payload: { amount: number; currency: string }) => Promise<PixRequest | null>;
 };
-
-type CreateDepositResult =
-  | { ok: true; payload: PixRequest; baselineCents: number | null }
-  | { ok: false; reason: 'disabled' | 'min' | 'max' | 'unavailable' | 'create_failed' };
 
 export function useDeposit(
   ensurePaymentsClient: () => Promise<PaymentsClient | null>,
@@ -17,6 +14,9 @@ export function useDeposit(
 ) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [depositError, setDepositError] = useState<string | null>(null);
+  const [depositErrorDetails, setDepositErrorDetails] = useState<Record<string, unknown> | null>(
+    null
+  );
   const [activeDeposit, setActiveDeposit] = useState<PixRequest | null>(null);
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const [depositBaselineCents, setDepositBaselineCents] = useState<number | null>(null);
@@ -48,16 +48,35 @@ export function useDeposit(
     if (!activeDeposit || !refreshWalletData) return;
     setIsSyncing(true);
     void (async () => {
-      try {
-        await refreshWalletData();
-      } finally {
-        if (mountedRef.current) setIsSyncing(false);
+      const maxAttempts = 5;
+      let attempt = 0;
+      let delay = 1000; // start with 1s
+      while (attempt < maxAttempts && mountedRef.current) {
+        try {
+          await refreshWalletData();
+          break; // success — stop retrying
+        } catch {
+          attempt += 1;
+          if (attempt >= maxAttempts) {
+            // give up after max attempts
+            break;
+          }
+          // exponential backoff with jitter
+          const jitter = Math.floor(Math.random() * 250);
+          await new Promise((res) => setTimeout(res, delay + jitter));
+          delay = Math.min(delay * 2, 30000);
+        }
       }
+      if (mountedRef.current) setIsSyncing(false);
     })();
   }, [activeDeposit, refreshWalletData]);
 
   const createDeposit = useCallback(
-    async (amount: number, depositChannel: PixChannelState, options?: { pausedMessage?: string }) => {
+    async (
+      amount: number,
+      depositChannel: PixChannelState,
+      options?: { pausedMessage?: string }
+    ) => {
       setIsGenerating(true);
       try {
         if (!depositChannel.enabled) {
@@ -77,22 +96,29 @@ export function useDeposit(
 
         const paymentsClient = await ensurePaymentsClient();
         if (!paymentsClient?.createPixDeposit) {
-          setDepositError('unavailable');
-          return { ok: false, reason: 'unavailable' } as const;
+          const msg = 'Serviço de pagamentos indisponível';
+          setDepositError(msg);
+          return { ok: false, reason: 'unavailable', message: msg } as const;
         }
         const payload = await paymentsClient.createPixDeposit({ amount, currency: 'BRL' });
         if (!payload) {
-          setDepositError('create_failed');
-          return { ok: false, reason: 'create_failed' } as const;
+          const msg = 'Falha ao criar depósito';
+          setDepositError(msg);
+          return { ok: false, reason: 'create_failed', message: msg } as const;
         }
         setDepositError(null);
+        setDepositErrorDetails(null);
         setActiveDeposit(payload);
         setDepositModalOpen(true);
         setDepositBaselineCents(walletBalanceCents ?? null);
         return { ok: true, payload, baselineCents: walletBalanceCents ?? null } as const;
       } catch (err) {
-        setDepositError('create_failed');
-        return { ok: false, reason: 'create_failed' } as const;
+        const msg = summarizeClientError(err);
+        let details: Record<string, unknown> | null = null;
+        if (err instanceof ApiClientError) details = err.details ?? null;
+        setDepositError(msg);
+        setDepositErrorDetails(details);
+        return { ok: false, reason: 'create_failed', message: msg } as const;
       } finally {
         if (mountedRef.current) setIsGenerating(false);
       }
@@ -103,6 +129,7 @@ export function useDeposit(
   return {
     isGenerating,
     depositError,
+    depositErrorDetails,
     activeDeposit,
     depositModalOpen,
     depositBaselineCents,

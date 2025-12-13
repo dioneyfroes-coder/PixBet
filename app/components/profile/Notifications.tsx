@@ -10,7 +10,12 @@ type NotificationItem = {
 };
 
 type Props = {
-  copy: { title?: string; description?: string; items?: NotificationItem[]; actions?: Record<string, string> };
+  copy: {
+    title?: string;
+    description?: string;
+    items?: NotificationItem[];
+    actions?: Record<string, string>;
+  };
   notifications: Record<string, boolean>;
   onChange: (next: Record<string, boolean>) => void;
   onSave?: () => void;
@@ -27,7 +32,6 @@ export default function Notifications({ copy, notifications, onChange, onSave, o
       </CardHeader>
       <CardContent className="space-y-6">
         {items.map((item) => {
-          const key = item.id as keyof typeof notifications;
           return (
             <Toggle
               key={item.id}

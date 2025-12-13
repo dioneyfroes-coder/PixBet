@@ -16,7 +16,8 @@ describe('Deposit component', () => {
     modal: {
       title: 'Finalize o depósito',
       testingTitle: 'Função em testes',
-      awaitingConfirmation: 'Pagamento enviado ao provedor, aguardando confirmação; o saldo será atualizado assim que o Pix for compensado.',
+      awaitingConfirmation:
+        'Pagamento enviado ao provedor, aguardando confirmação; o saldo será atualizado assim que o Pix for compensado.',
       confirm: 'Atualizar saldo',
       confirming: 'Confirmando...',
       close: 'Fechar',
@@ -33,6 +34,15 @@ describe('Deposit component', () => {
     status: 'pending',
   };
 
+  type CreateDepositFnLocal = (
+    amount: number,
+    channel: { enabled: boolean; minAmount: number; maxAmount: number },
+    options?: { pausedMessage?: string | undefined }
+  ) => Promise<
+    | { ok: true; payload: PixRequest; baselineCents: number | null }
+    | { ok: false; reason: string; message?: string }
+  >;
+
   let createDeposit: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -46,10 +56,10 @@ describe('Deposit component', () => {
         <Deposit
           depositCopy={depositCopy}
           depositChannel={{ enabled: true, minAmount: 1000, maxAmount: 1500000 }}
-          depositLimitLabel={null}
-          depositStatusLabel={null}
-          depositPausedMessage={null}
-          createDeposit={createDeposit}
+          depositLimitLabel={undefined}
+          depositStatusLabel={undefined}
+          depositPausedMessage={undefined}
+          createDeposit={createDeposit as unknown as CreateDepositFnLocal}
           isGenerating={false}
           depositErrorFromHook={null}
           activeDeposit={null}
@@ -66,7 +76,11 @@ describe('Deposit component', () => {
     await user.click(submit);
 
     await waitFor(() => expect(createDeposit).toHaveBeenCalled());
-    expect(createDeposit).toHaveBeenCalledWith(250, { enabled: true, minAmount: 1000, maxAmount: 1500000 }, { pausedMessage: null });
+    expect(createDeposit).toHaveBeenCalledWith(
+      250,
+      { enabled: true, minAmount: 1000, maxAmount: 1500000 },
+      { pausedMessage: undefined }
+    );
   });
 
   it('renders modal content when activeDeposit provided', async () => {
@@ -75,10 +89,10 @@ describe('Deposit component', () => {
         <Deposit
           depositCopy={depositCopy}
           depositChannel={{ enabled: true, minAmount: 1000, maxAmount: 1500000 }}
-          depositLimitLabel={null}
-          depositStatusLabel={null}
-          depositPausedMessage={null}
-          createDeposit={createDeposit}
+          depositLimitLabel={undefined}
+          depositStatusLabel={undefined}
+          depositPausedMessage={undefined}
+          createDeposit={createDeposit as unknown as CreateDepositFnLocal}
           isGenerating={false}
           depositErrorFromHook={null}
           activeDeposit={defaultPixDeposit}

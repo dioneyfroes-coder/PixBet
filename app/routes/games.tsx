@@ -72,7 +72,7 @@ export default function GamesCatalog() {
 
     // intentionally return empty when backend registry is not available to avoid
     // showing placeholder/mock entries from translations.
-    return [] as unknown as (typeof copy.sections);
+    return [] as unknown as typeof copy.sections;
   }, [copy, playCTA, loaderData]);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

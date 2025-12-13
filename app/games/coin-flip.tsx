@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { GameComponentProps } from '../types/games';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -54,14 +54,15 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [flipState, setFlipState] = useState<'idle' | 'animating' | 'revealed'>('idle');
   const [flipWinner, setFlipWinner] = useState<'HEADS' | 'TAILS' | null>(null);
+  const animationTimeoutRef = useRef<number | null>(null);
 
   // import CSS for animation (kept local to the module)
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('./coin-flip.css');
-  } catch {
-    // ignore missing CSS in some test environments
-  }
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    import('./coin-flip.css').catch(() => {
+      // ignore missing CSS in some test environments
+    });
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -159,11 +160,17 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
           // push to history immediately (backend snapshot)
           setHistory((prev) => [response.round, ...prev].slice(0, 10));
           // determine which side landed; prefer explicit outcome, fallback to result + choice
-          const outcome = response.round.outcome ?? (response.round.result === 'WIN' ? choice : choice === 'HEADS' ? 'TAILS' : 'HEADS');
+          const outcome =
+            response.round.outcome ??
+            (response.round.result === 'WIN' ? choice : choice === 'HEADS' ? 'TAILS' : 'HEADS');
           setFlipWinner(outcome ?? null);
         }
         // wait for the animation to finish then reveal text
-        window.setTimeout(async () => {
+        if (animationTimeoutRef.current) {
+          window.clearTimeout(animationTimeoutRef.current);
+        }
+        animationTimeoutRef.current = window.setTimeout(async () => {
+          animationTimeoutRef.current = null;
           setFlipState('revealed');
           try {
             await refreshAccount();
@@ -191,6 +198,15 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
     },
     [choice, refreshAccount, validateWager, wager]
   );
+
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+        animationTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const loading = loadingConfig || walletLoading;
   const statusLabel = useMemo(() => {
@@ -269,19 +285,41 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
           <CardTitle>Faça sua aposta</CardTitle>
         </CardHeader>
         <CardContent>
-            {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
-            {success && <p className="mb-4 text-sm text-emerald-400">{success}</p>}
-            <div className="mb-4 flex items-center justify-center">
-              <div className="coin-flip-root">
-                <div
-                  role="img"
-                  aria-label={flipWinner ? `Moeda: ${flipWinner === 'HEADS' ? 'Cara' : 'Coroa'}` : 'Moeda em espera'}
-                  className={`coin ${flipState === 'animating' ? 'flip' : ''} ${flipState === 'revealed' ? 'revealed' : ''} ${flipWinner === 'HEADS' ? 'heads' : flipWinner === 'TAILS' ? 'tails' : ''}`}
-                >
-                  {flipState === 'revealed' ? (flipWinner === 'HEADS' ? 'CARA' : flipWinner === 'TAILS' ? 'COROA' : '') : ' '} 
-                </div>
+          {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+          {success && <p className="mb-4 text-sm text-emerald-400">{success}</p>}
+          <div className="mb-4 flex items-center justify-center">
+            <div className="coin-flip-root">
+              <div
+                role="img"
+                aria-label={
+                  flipWinner
+                    ? `Moeda: ${flipWinner === 'HEADS' ? 'Cara' : 'Coroa'}`
+                    : 'Moeda em espera'
+                }
+                className={cn(
+                  'coin',
+                  flipState === 'animating' &&
+                    (flipWinner === 'HEADS' ? 'flip-heads' : 'flip-tails'),
+                  flipState === 'revealed' && 'revealed',
+                  flipWinner === 'HEADS' ? 'heads' : flipWinner === 'TAILS' ? 'tails' : ''
+                )}
+              >
+                {/* rim ridges element for visual edge detail */}
+                <span className="coin-ridges" aria-hidden="true" />
+                <span className="coin-face coin-face--heads" aria-hidden={flipState !== 'revealed'}>
+                  <span className="coin-face__label">CARA</span>
+                </span>
+                <span className="coin-face coin-face--tails" aria-hidden={flipState !== 'revealed'}>
+                  <span className="coin-face__label">COROA</span>
+                </span>
               </div>
+              <span className="sr-only" aria-live="polite">
+                {flipState === 'revealed' && flipWinner
+                  ? `Moeda: ${flipWinner === 'HEADS' ? 'Cara' : 'Coroa'}`
+                  : ''}
+              </span>
             </div>
+          </div>
           <form className="grid gap-4 md:grid-cols-[1fr,1fr,auto]" onSubmit={handlePlay}>
             <div className="space-y-2">
               <p className="text-sm text-[var(--color-muted)]">Escolha</p>
