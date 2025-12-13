@@ -58,7 +58,9 @@ describe('useWithdraw', () => {
 
   it('requestWithdrawal returns ok when client resolves', async () => {
     const requestPixWithdrawal = vi.fn().mockResolvedValue(true);
-    ensurePaymentsClient = async () => ({ requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'] });
+    ensurePaymentsClient = async () => ({
+      requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'],
+    });
     const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
     let out: { ok: boolean; reason?: string } | undefined;
     await act(async () => {
@@ -70,7 +72,9 @@ describe('useWithdraw', () => {
 
   it('requestWithdrawal returns request_failed when client throws', async () => {
     const requestPixWithdrawal = vi.fn().mockRejectedValue(new Error('boom'));
-    ensurePaymentsClient = async () => ({ requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'] });
+    ensurePaymentsClient = async () => ({
+      requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'],
+    });
     const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
     let out: { ok: boolean; reason?: string } | undefined;
     await act(async () => {
@@ -91,7 +95,9 @@ describe('useWithdraw', () => {
     });
 
     const requestPixWithdrawal = vi.fn().mockRejectedValue(backendErr);
-    ensurePaymentsClient = async () => ({ requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'] });
+    ensurePaymentsClient = async () => ({
+      requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'],
+    });
     const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
     let out: { ok: boolean; reason?: string; message?: string } | undefined;
     await act(async () => {
@@ -103,5 +109,24 @@ describe('useWithdraw', () => {
       expect(out.reason).toBe('request_failed');
       expect(out.message).toContain('Conta inválida');
     }
+  });
+
+  it('sends password when provided to requestPixWithdrawal', async () => {
+    const requestPixWithdrawal = vi.fn().mockResolvedValue(true);
+    ensurePaymentsClient = async () => ({
+      requestPixWithdrawal: requestPixWithdrawal as WithdrawPaymentsClient['requestPixWithdrawal'],
+    });
+    const { result } = renderHook(() => useWithdraw(ensurePaymentsClient));
+    let out: { ok: boolean } | undefined;
+    await act(async () => {
+      out = await result.current.requestWithdrawal(150, 'pix-key', 'secret-pass');
+    });
+    expect(requestPixWithdrawal).toHaveBeenCalledWith({
+      amount: 150,
+      currency: 'BRL',
+      pixKey: 'pix-key',
+      password: 'secret-pass',
+    });
+    if (out) expect(out.ok).toBe(true);
   });
 });
