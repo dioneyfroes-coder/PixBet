@@ -1,6 +1,6 @@
 import type { Route } from './+types/perfil';
 import type { ChangeEvent, FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLoaderData } from 'react-router';
 import { useAccountHydration } from '../hooks/useAccountHydration';
 import { selectWalletBalance, useAccountStore } from '../stores/useAccountStore';
@@ -18,9 +18,8 @@ import PixKeyCard from '../components/profile/PixKeyCard';
 
 import { requireAuth } from '../utils/auth.server';
 import { useI18n } from '../i18n/i18n-provider';
-import { usersApi } from '../lib/sdk/modules/users';
+import { usersApi, type PreferencesSnapshot } from '../lib/sdk/modules/users';
 import { resolveOptionalAuthOptions, resolveAuthOptions } from '../lib/sdk/clients/_internal';
-import { sendApiRequest } from '../lib/sdk/core/client';
 // SecureBalance removed from profile to avoid displaying wallet balance in profile
 
 interface StatItem {
@@ -44,6 +43,12 @@ interface UserProfile {
   history?: { entries?: HistoryEntry[] };
   notifications?: Record<string, boolean>;
 }
+
+const preferenceFieldMap: Record<string, keyof PreferencesSnapshot> = {
+  email: 'emailNotifications',
+  push: 'smsNotifications',
+  security: 'marketingEmails',
+} satisfies Record<string, keyof PreferencesSnapshot>;
 import { getPageMeta } from '../i18n/page-copy';
 import type { ProfileCopy, WalletCopy } from '../types/i18n';
 
@@ -59,6 +64,7 @@ export default function Perfil() {
   useAccountHydration(initialAccountSnapshot);
   const _walletBalanceCents = useAccountStore(selectWalletBalance);
   const accountUser = useAccountStore((state) => state.user);
+  const refreshAccount = useAccountStore((state) => state.refreshAll);
   const resolvedProfileData = useMemo(() => {
     if (!accountUser || typeof accountUser !== 'object') {
       return null;
@@ -75,7 +81,9 @@ export default function Perfil() {
   const profileCopy: ProfileCopy = messages.profile;
   const walletCopy = messages.wallet as WalletCopy;
   const getPersonalMsg = (key: string): string | undefined => {
-    const v = (profileCopy.personalForm as ProfileCopy['personalForm'])[key as keyof ProfileCopy['personalForm']];
+    const v = (profileCopy.personalForm as ProfileCopy['personalForm'])[
+      key as keyof ProfileCopy['personalForm']
+    ];
     return typeof v === 'string' ? v : undefined;
   };
   const summaryCard = walletCopy.summaryCard;
@@ -111,23 +119,54 @@ export default function Perfil() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // Build notifications initial state from translation keys when backend not available.
-  const initialNotifications = (profileCopy?.notifications?.items ?? []).reduce(
-    (acc, it) => ({ ...acc, [it.id]: false }),
-    {} as Record<string, boolean>
+  const initialNotifications = useMemo(
+    () =>
+      (profileCopy?.notifications?.items ?? []).reduce(
+        (acc, it) => ({ ...acc, [it.id]: false }),
+        {} as Record<string, boolean>
+      ),
+    [profileCopy?.notifications?.items]
+  );
+  const mapPreferencesToNotifications = useCallback(
+    (prefs?: PreferencesSnapshot | null) => {
+      const base = { ...initialNotifications };
+      if (!prefs) return base;
+      Object.entries(preferenceFieldMap).forEach(([toggle, field]) => {
+        if (typeof prefs[field] === 'boolean') {
+          base[toggle] = prefs[field] as boolean;
+        }
+      });
+      return base;
+    },
+    [initialNotifications]
   );
   const [notifications, setNotifications] = useState<Record<string, boolean>>(initialNotifications);
+  const [notificationDefaults, setNotificationDefaults] = useState(initialNotifications);
+  const profileSnapshotRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setNotifications(initialNotifications);
+    setNotificationDefaults(initialNotifications);
+  }, [initialNotifications]);
 
   const [_remoteProfile, setRemoteProfile] = useState<null | Record<string, unknown>>(null);
 
   useEffect(() => {
     if (!resolvedProfileData) {
+      profileSnapshotRef.current = null;
       return;
     }
+    const serialized = JSON.stringify(resolvedProfileData);
+    if (profileSnapshotRef.current === serialized) {
+      return;
+    }
+    profileSnapshotRef.current = serialized;
     const normalized = resolvedProfileData as UserProfile & {
       firstName?: string;
       lastName?: string;
       username?: string;
     };
+    console.info('[perfil] resolved profile data', normalized);
     setRemoteProfile(normalized as Record<string, unknown>);
     setProfileForm((current) => {
       const composedName = [normalized.firstName, normalized.lastName]
@@ -173,8 +212,31 @@ export default function Perfil() {
     };
   }, [pixKey]);
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const authOptions = await resolveAuthOptions();
+        const { data } = await usersApi.getPreferences(authOptions);
+        if (!mounted) return;
+        const next = mapPreferencesToNotifications(data ?? null);
+        setNotifications(next);
+        setNotificationDefaults(next);
+      } catch (err) {
+        console.error('[perfil] failed to load preferences', err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [mapPreferencesToNotifications]);
+
   const handleProfileSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    console.info('[perfil] submitting profile update', {
+      current: _remoteProfile,
+      form: profileForm,
+    });
     (async () => {
       setProfileStatus('saving');
       try {
@@ -205,13 +267,13 @@ export default function Perfil() {
         if (profileForm.bio && profileForm.bio.trim().length > 0)
           extra.bio = profileForm.bio.trim();
         if (Object.keys(extra).length > 0) {
-          await sendApiRequest('/users/me', {
-            method: 'PATCH',
-            body: extra,
-            token: authOptions.token,
-            target: 'api',
-          });
+          await usersApi.patchProfile(extra as Record<string, string>, authOptions);
         }
+        console.info('[perfil] profile update succeeded', {
+          name: profileForm.name.trim(),
+          email: profileForm.email.trim(),
+          extra,
+        });
         setProfileStatus('saved');
         window.setTimeout(() => setProfileStatus('idle'), 1200);
       } catch (err) {
@@ -219,6 +281,24 @@ export default function Perfil() {
         setProfileStatus('idle');
       }
     })();
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      const authOptions = await resolveAuthOptions();
+      const payload: Partial<PreferencesSnapshot> = {};
+      Object.entries(preferenceFieldMap).forEach(([toggle, field]) => {
+        payload[field] = Boolean(notifications[toggle]);
+      });
+      console.info('[perfil] saving notification preferences', payload);
+      const { data } = await usersApi.updatePreferences(payload, authOptions);
+      const next = mapPreferencesToNotifications(data ?? null);
+      setNotifications(next);
+      setNotificationDefaults(next);
+      console.info('[perfil] notification preferences saved', { data });
+    } catch (err) {
+      console.error('[perfil] failed to save notification preferences', err);
+    }
   };
 
   const handlePixSave = async (event?: FormEvent | MouseEvent) => {
@@ -233,6 +313,7 @@ export default function Perfil() {
       if (normalized.length === 0) {
         const authOptions = await resolveAuthOptions();
         await usersApi.updatePixKey({ pixKey: '' }, authOptions);
+        await refreshAccount({ accessToken: authOptions.token });
         setPixKey('');
         setPixStatus('saved');
         window.setTimeout(() => setPixStatus('idle'), 1200);
@@ -334,6 +415,7 @@ export default function Perfil() {
 
       const authOptions = await resolveAuthOptions();
       await usersApi.updatePixKey({ pixKey: normalized }, authOptions);
+      await refreshAccount({ accessToken: authOptions.token });
       // reflect normalized value in UI
       setPixKey(normalized || '');
       setPixStatus('saved');
@@ -362,13 +444,7 @@ export default function Perfil() {
         const authOptions = await resolveAuthOptions();
         const form = new FormData();
         files.forEach((f) => form.append('files', f));
-        // send via sendApiRequest (it supports FormData)
-        await sendApiRequest('/users/me/documents', {
-          method: 'POST',
-          body: form,
-          target: 'api',
-          token: authOptions.token,
-        });
+        await usersApi.uploadDocuments(form, authOptions);
         setDocumentStatus('processed');
       } catch (err) {
         console.error('document upload failed', err);
@@ -402,12 +478,7 @@ export default function Perfil() {
     setIsChangingPassword(true);
     try {
       const authOptions = await resolveAuthOptions();
-      await sendApiRequest('/users/me/password', {
-        method: 'POST',
-        body: { currentPassword, newPassword },
-        target: 'api',
-        token: authOptions.token,
-      });
+      await usersApi.changePassword({ currentPassword, newPassword }, authOptions);
       setPasswordModalOpen(false);
       setCurrentPassword('');
       setNewPassword('');
@@ -424,11 +495,7 @@ export default function Perfil() {
     setIsDeletingAccount(true);
     try {
       const authOptions = await resolveAuthOptions();
-      await sendApiRequest('/users/me', {
-        method: 'DELETE',
-        target: 'api',
-        token: authOptions.token,
-      });
+      await usersApi.deleteAccount(authOptions);
       // best-effort: navigate to home or show message; leave to caller to logout
       setDeleteModalOpen(false);
     } catch (err) {
@@ -523,21 +590,8 @@ export default function Perfil() {
             copy={profileCopy.notifications}
             notifications={notifications}
             onChange={(next) => setNotifications(next)}
-            onReset={() => setNotifications(initialNotifications)}
-            onSave={async () => {
-              try {
-                const authOptions = await resolveAuthOptions();
-                // call backend to save notification preferences when available
-                await sendApiRequest('/users/me/notifications', {
-                  method: 'PUT',
-                  body: notifications,
-                  token: authOptions?.token,
-                  target: 'api',
-                });
-              } catch {
-                // ignore failures for now; backend may not exist yet
-              }
-            }}
+            onReset={() => setNotifications(notificationDefaults)}
+            onSave={handleSavePreferences}
           />
         </FadeIn>
       </div>

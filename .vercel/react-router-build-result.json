@@ -151,9 +151,9 @@
     }
   },
   "reactRouterConfig": {
-    "appDirectory": "/home/dioney/Documentos/bet/frontBet/app",
+    "appDirectory": "/home/dioney/backups/frontBet-2025-12-11_211402/frontBet-working-tree/app",
     "basename": "/",
-    "buildDirectory": "/home/dioney/Documentos/bet/frontBet/build",
+    "buildDirectory": "/home/dioney/backups/frontBet-2025-12-11_211402/frontBet-working-tree/build",
     "future": {
       "v8_middleware": false,
       "unstable_optimizeDeps": false,

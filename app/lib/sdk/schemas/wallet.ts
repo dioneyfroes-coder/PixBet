@@ -94,6 +94,7 @@ export const WalletWithdrawRequestSchema = z.object({
   amount: z.number().positive('Valor deve ser maior que zero'),
   currency: CurrencyEnumSchema.default('BRL'),
   pixKey: z.string().min(5, 'Chave PIX inválida').optional(),
+  password: z.string().min(1, 'Senha inválida').optional(),
   description: z.string().optional(),
 });
 

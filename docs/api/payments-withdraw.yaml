@@ -34,13 +34,13 @@ paths:
                 value:
                   amount: 150.5
                   currency: BRL
-                  pixKey: "user@example.com"
+                  pixKey: 'user@example.com'
               withPassword:
                 value:
                   amount: 200
                   currency: BRL
-                  pixKey: "5511999999999"
-                  password: "user-transaction-password"
+                  pixKey: '5511999999999'
+                  password: 'user-transaction-password'
       responses:
         '200':
           description: Withdrawal accepted
@@ -52,8 +52,8 @@ paths:
                 accepted:
                   value:
                     ok: true
-                    requestId: "wd_123456"
-                    status: "pending"
+                    requestId: 'wd_123456'
+                    status: 'pending'
         '400':
           description: Bad Request — validation errors
           content:

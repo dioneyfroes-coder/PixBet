@@ -207,6 +207,8 @@ describe('Carteira PIX flow', () => {
       expect(screen.getByRole('button', { name: 'Confirmar saque' })).toBeVisible()
     );
     const confirmButton = screen.getByRole('button', { name: 'Confirmar saque' });
+    const passwordInput = screen.getByLabelText('Senha (obrigatória)');
+    await user.type(passwordInput, 'senha-segura');
     await user.click(confirmButton);
 
     await waitFor(() => expect(mockRequestPixWithdrawal).toHaveBeenCalledTimes(1));
@@ -214,6 +216,7 @@ describe('Carteira PIX flow', () => {
       amount: 100,
       currency: 'BRL',
       pixKey: 'teste@pix',
+      password: 'senha-segura',
     });
   });
 });

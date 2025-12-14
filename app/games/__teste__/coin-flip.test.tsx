@@ -50,14 +50,25 @@ describe('CoinFlip animation timeout cleanup', () => {
       name: 'Coin Flip',
       icon: '',
       category: 'probabilidades' as const,
-      loadComponent: async () => ({ default: () => null as unknown as React.ComponentType<GameComponentProps> }),
+      loadComponent: async () => ({
+        default: () => null as unknown as React.ComponentType<GameComponentProps>,
+      }),
       overview: '',
       highlights: [],
     } as unknown as GameDescriptor;
 
     const { getByLabelText, getByRole, unmount } = render(
       // minimal props expected by descriptor/stats
-      <CoinFlipGame descriptor={fullDescriptor} stats={{ winRate: 50, activePlayers: 0, trend: 'stable', lastUpdate: new Date().toISOString(), insights: [] }} />
+      <CoinFlipGame
+        descriptor={fullDescriptor}
+        stats={{
+          winRate: 50,
+          activePlayers: 0,
+          trend: 'stable',
+          lastUpdate: new Date().toISOString(),
+          insights: [],
+        }}
+      />
     );
 
     // Wait for initial effects to resolve

@@ -118,7 +118,15 @@
   transform: rotateX(180deg);
 }
 .coin-face__label {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.1em;
   user-select: none;
 }
 

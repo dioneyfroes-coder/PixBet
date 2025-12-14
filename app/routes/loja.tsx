@@ -1,10 +1,10 @@
 import type { Route } from './+types/loja';
 import { PageShell } from '../components/page-shell';
 import { requireAuth } from '../utils/auth.server';
-import { sendApiRequest } from '../lib/sdk/core/client';
 import { useLoaderData } from 'react-router';
 import { useI18n } from '../i18n/i18n-provider';
 import { getPageMeta } from '../i18n/page-copy';
+import { getStoreItems, type StoreItem } from '../lib/sdk/clients/store';
 
 export function meta({}: Route.MetaArgs) {
   const meta = getPageMeta('store');
@@ -14,11 +14,7 @@ export function meta({}: Route.MetaArgs) {
 export default function Loja() {
   const { messages } = useI18n();
   const storeCopy = messages.store;
-  const loaderData = useLoaderData() as
-    | {
-        items?: Array<{ id?: string; name: string; description?: string; price?: string | number }>;
-      }
-    | undefined;
+  const loaderData = useLoaderData() as { items?: StoreItem[] } | undefined;
   const items = loaderData?.items ?? null;
 
   function formatPrice(value?: string | number) {
@@ -71,8 +67,7 @@ export default function Loja() {
 export async function loader(args: Route.LoaderArgs) {
   await requireAuth(args);
   try {
-    const { data } = await sendApiRequest('/store/items', { method: 'GET' });
-    const items = Array.isArray(data) ? data : [];
+    const items = await getStoreItems();
     return { items };
   } catch {
     // If backend doesn't expose store endpoint yet, fallback to i18n content

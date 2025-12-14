@@ -30,6 +30,7 @@ export type PixWithdrawalInput = {
   pixKey: string;
   cpf?: string;
   rg?: string;
+  password?: string;
 };
 
 const SUPPORTED_CURRENCIES = ['BRL', 'USD', 'EUR'] as const;
@@ -120,6 +121,7 @@ const toWalletWithdrawPayload = (input: PixWithdrawalInput): WalletWithdrawPaylo
     amount: Math.round(input.amount * 100),
     currency: normalizeCurrency(input.currency),
     pixKey: input.pixKey,
+    password: input.password,
     description,
   };
 };

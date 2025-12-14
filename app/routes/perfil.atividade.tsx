@@ -1,4 +1,12 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react';
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import type { Route } from './+types/perfil.atividade';
 import { PageShell } from '../components/page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -55,11 +63,93 @@ function humanize(value: unknown) {
     .join(' ');
 }
 
+function humanizeIdentifierKey(value: string) {
+  const spaced = value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return humanize(spaced) ?? value;
+}
+
+function slugify(value?: string | null) {
+  if (!value || typeof value !== 'string') return '';
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .toLowerCase();
+}
+
+function buildChannelAwareLabel(
+  baseKey: string,
+  fallback: string,
+  channel?: string,
+  gameLabel?: string
+) {
+  if (channel === 'PIX') {
+    if (baseKey.includes('withdraw') || baseKey.includes('saque')) {
+      return 'Saque PIX';
+    }
+    if (baseKey.includes('deposit')) {
+      return 'Depósito PIX';
+    }
+    if (baseKey.includes('payout') || baseKey.includes('payment') || baseKey.includes('pagamento')) {
+      return 'Pagamento PIX';
+    }
+    if (baseKey.includes('lock')) {
+      return 'Bloqueio PIX';
+    }
+    if (baseKey.includes('unlock')) {
+      return 'Liberação PIX';
+    }
+    return `PIX · ${fallback}`;
+  }
+  if (channel === 'GAME') {
+    const suffix = gameLabel ? ` de ${gameLabel}` : '';
+    if (baseKey.includes('bet') || baseKey.includes('aposta')) {
+      return `Aposta${suffix}`;
+    }
+    if (baseKey.includes('win') || baseKey.includes('payout') || baseKey.includes('winnings')) {
+      return `Prêmio${suffix}`;
+    }
+    if (baseKey.includes('lock')) {
+      return `Bloqueio${suffix}`;
+    }
+    if (baseKey.includes('unlock')) {
+      return `Liberação${suffix}`;
+    }
+    if (baseKey.includes('deposit')) {
+      return `Crédito${suffix}`;
+    }
+    return fallback;
+  }
+  return fallback;
+}
+
 function formatActivityTimestamp(value?: string | null) {
   if (!value) return '';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return activityTimestampFormatter.format(parsed);
+}
+
+const TYPE_LABEL_OVERRIDES: Record<string, string> = {
+  login: 'Login',
+  pesquisa: 'Pesquisa',
+  saque: 'Saque PIX',
+  withdraw: 'Saque PIX',
+  payout: 'Saque PIX',
+  deposit: 'Depósito PIX',
+  deposito: 'Depósito PIX',
+  pagamento: 'Pagamento PIX',
+  transferencia: 'Transferência',
+  configuracao: 'Configuração',
+  configuracoes: 'Configuração',
+};
+
+function overrideTypeLabel(typeKey: string, fallback: string) {
+  const matchingKey = Object.keys(TYPE_LABEL_OVERRIDES).find((candidate) =>
+    typeKey.includes(candidate)
+  );
+  return matchingKey ? TYPE_LABEL_OVERRIDES[matchingKey] : fallback;
 }
 
 function mapSampleEvents(events: ActivityCopyEvent[] = []) {
@@ -77,9 +167,37 @@ function mapSampleEvents(events: ActivityCopyEvent[] = []) {
 }
 
 function mapTransactionToEvent(entry: Record<string, unknown>): ActivityEvent {
-  const typeKey = normalizeKey(entry.type);
-  const typeLabel =
-    humanize(entry.type) ?? typeKey.replace(/(^|\s)\S/g, (match) => match.toUpperCase());
+  const metadata =
+    entry.metadata && typeof entry.metadata === 'object'
+      ? (entry.metadata as Record<string, unknown>)
+      : null;
+  const metadataChannel =
+    typeof metadata?.channel === 'string' && metadata.channel.trim()
+      ? metadata.channel.trim().toUpperCase()
+      : undefined;
+  const metadataChannelKey = metadataChannel ? metadataChannel.toLowerCase() : undefined;
+  const metadataGameRaw =
+    typeof metadata?.game === 'string' && metadata.game.trim()
+      ? metadata.game.trim()
+      : undefined;
+  const metadataGameLabel = metadataGameRaw ? humanize(metadataGameRaw) ?? undefined : undefined;
+  const metadataGameSlug = slugify(metadataGameRaw ?? null);
+
+  const baseTypeKey = normalizeKey(entry.type) || 'event';
+  const defaultTypeLabel =
+    humanize(entry.type) ?? baseTypeKey.replace(/(^|\s)\S/g, (match) => match.toUpperCase());
+  const fallbackLabel = overrideTypeLabel(baseTypeKey, defaultTypeLabel);
+  const typeLabel = buildChannelAwareLabel(
+    baseTypeKey,
+    fallbackLabel,
+    metadataChannel,
+    metadataGameLabel
+  );
+  const typeKeyParts = [metadataChannelKey, baseTypeKey];
+  if (metadataChannelKey === 'game' && metadataGameSlug) {
+    typeKeyParts.push(metadataGameSlug);
+  }
+  const typeKey = typeKeyParts.filter(Boolean).join('-') || baseTypeKey;
 
   const rawAmount =
     typeof entry.amount === 'number'
@@ -87,24 +205,68 @@ function mapTransactionToEvent(entry: Record<string, unknown>): ActivityEvent {
       : typeof entry.amount === 'string'
         ? Number(entry.amount)
         : null;
-  const normalizedAmount =
-    rawAmount !== null && Number.isFinite(rawAmount) ? rawAmount / 100 : null;
+  const normalizedAmount = (() => {
+    if (rawAmount === null || !Number.isFinite(rawAmount)) return null;
+    if (rawAmount > 10_000) return rawAmount / 100;
+    return rawAmount;
+  })();
   const amountLabel =
     normalizedAmount !== null ? activityCurrencyFormatter.format(normalizedAmount) : null;
 
-  const description =
-    (typeof entry.description === 'string' && entry.description.trim()) ||
-    (typeof entry.reference === 'string' && entry.reference.trim()) ||
-    [typeLabel, amountLabel].filter(Boolean).join(' · ') ||
-    typeLabel;
+  const descriptionCandidate =
+    typeof entry.description === 'string' ? entry.description.trim() : '';
+  const metadataDescription =
+    typeof metadata?.description === 'string' ? metadata.description.trim() : '';
+  const referenceCandidate = typeof entry.reference === 'string' ? entry.reference.trim() : '';
+  const descriptionParts: string[] = [];
+  if (descriptionCandidate) {
+    descriptionParts.push(descriptionCandidate);
+  }
+  if (
+    metadataDescription &&
+    !descriptionParts.some((part) => part.includes(metadataDescription))
+  ) {
+    descriptionParts.push(metadataDescription);
+  }
+  if (referenceCandidate && !descriptionParts.some((part) => part.includes(referenceCandidate))) {
+    descriptionParts.push(referenceCandidate);
+  }
+  if (amountLabel && !descriptionParts.some((part) => part.includes(amountLabel))) {
+    descriptionParts.push(amountLabel);
+  }
+  const description = descriptionParts.join(' · ') || typeLabel;
 
-  const channel = humanize(entry.channel) ?? undefined;
-  const status = humanize(entry.status) ?? undefined;
-  const reference =
-    typeof entry.reference === 'string' && entry.reference.trim().length > 0
-      ? entry.reference
-      : null;
-  const deviceParts = [channel, reference, status].filter(Boolean);
+  const channelLabel =
+    metadataChannel === 'PIX'
+      ? 'PIX'
+      : metadataChannel
+        ? humanize(metadataChannel) ?? metadataChannel
+        : humanize(entry.channel) ?? undefined;
+  const statusLabel = humanize(entry.status) ?? undefined;
+  const identifierKeys = [
+    'pixReference',
+    'pixChargeId',
+    'pixPayoutId',
+    'roundId',
+    'walletActionId',
+    'transactionId',
+  ];
+  const metadataIdentifierParts: string[] = [];
+  if (metadata) {
+    identifierKeys.forEach((key) => {
+      const value = metadata[key];
+      if (typeof value === 'string' && value.trim()) {
+        metadataIdentifierParts.push(`${humanizeIdentifierKey(key)} ${value.trim()}`);
+      }
+    });
+  }
+  const deviceParts = [
+    channelLabel,
+    metadataGameLabel,
+    ...metadataIdentifierParts,
+    statusLabel,
+    referenceCandidate,
+  ].filter(Boolean);
   const device = deviceParts.length > 0 ? deviceParts.join(' · ') : undefined;
 
   const timestampSource =
@@ -137,17 +299,11 @@ export default function AtividadeRecente() {
   const { messages } = useI18n();
   const activityCopy = messages.activity;
   const sampleEvents = useMemo(() => mapSampleEvents(activityCopy.events), [activityCopy.events]);
-  const [events, setEvents] = useState<ActivityEvent[]>(sampleEvents);
-  const [hasRemoteEvents, setHasRemoteEvents] = useState(false);
+  const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const hasRemoteEventsRef = useRef(false);
   const [activeType, setActiveType] = useState<'todos' | string>('todos');
   const [isLoadingRemote, setIsLoadingRemote] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!hasRemoteEvents) {
-      setEvents(sampleEvents);
-    }
-  }, [sampleEvents, hasRemoteEvents]);
 
   const fetchEvents = useCallback(
     async (signal?: AbortSignal) => {
@@ -162,11 +318,11 @@ export default function AtividadeRecente() {
         setEvents(
           remoteEvents.map((entry) => mapTransactionToEvent(entry as Record<string, unknown>))
         );
-        setHasRemoteEvents(true);
+        hasRemoteEventsRef.current = true;
       } catch {
         if (signal?.aborted) return;
         setLoadError(activityCopy.loadError ?? 'Não foi possível carregar a atividade agora.');
-        if (!hasRemoteEvents) {
+        if (!hasRemoteEventsRef.current) {
           setEvents(sampleEvents);
         }
       } finally {
@@ -175,7 +331,7 @@ export default function AtividadeRecente() {
         }
       }
     },
-    [activityCopy.loadError, hasRemoteEvents, sampleEvents]
+    [activityCopy.loadError, sampleEvents]
   );
 
   useEffect(() => {

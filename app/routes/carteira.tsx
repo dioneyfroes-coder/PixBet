@@ -121,6 +121,8 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
   const mountedRef = useRef(true);
   const [_depositError, _setDepositError] = useState<string | null>(null);
   const [, _startPixTransition] = useTransition();
+  const [pixKeyFromApi, setPixKeyFromApi] = useState<string | null>(null);
+  const refreshUserSnapshot = useAccountStore((state) => state.fetchUserSnapshot);
 
   const [withdrawAmount, setWithdrawAmount] = useState('100,00');
   const [withdrawNote, setWithdrawNote] = useState<{
@@ -186,7 +188,28 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
       : null;
 
   // The pix key we will display/use for withdrawals (prefers live store, falls back to initial snapshot)
-  const displayedPixKey = userPixKey ?? initialUserPixKey;
+  const displayedPixKey = useMemo(() => {
+    const candidate = pixKeyFromApi ?? userPixKey ?? initialUserPixKey;
+    if (!candidate) return null;
+    const normalized = String(candidate).trim();
+    return normalized.length > 0 ? normalized : null;
+  }, [pixKeyFromApi, userPixKey, initialUserPixKey]);
+
+  const loadPixKey = useCallback(async () => {
+    try {
+      const [{ usersApi }, { resolveAuthOptions }] = await Promise.all([
+        import('../lib/sdk/modules/users'),
+        import('../lib/sdk/clients/_internal'),
+      ]);
+      const authOptions = await resolveAuthOptions();
+      const response = await usersApi.getPixKey(authOptions);
+      const key = (response.data?.pixKey ?? null) as string | null;
+      setPixKeyFromApi(key && String(key).trim().length > 0 ? String(key).trim() : null);
+      return key;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const ensurePaymentsClient = useCallback(async () => {
     if (paymentsClientRef.current) {
@@ -245,7 +268,8 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
 
   useEffect(() => {
     void refreshWalletData();
-  }, [refreshWalletData]);
+    void loadPixKey();
+  }, [refreshWalletData, loadPixKey]);
 
   useEffect(() => {
     return () => {
@@ -341,7 +365,13 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
       closeDepositModal();
       setDepositConfirmedByUser(false);
     }
-  }, [activeDeposit, walletBalanceCents, depositBaselineCents, closeDepositModal, depositConfirmedByUser]);
+  }, [
+    activeDeposit,
+    walletBalanceCents,
+    depositBaselineCents,
+    closeDepositModal,
+    depositConfirmedByUser,
+  ]);
 
   const handleConfirmDeposit = useCallback(() => {
     setDepositConfirmedByUser(true);
@@ -486,10 +516,13 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
                 // reuse centralized validation used by profile
                 const { validatePixKey, normalizePixKey } = await import('../utils/pix');
                 const normalized = normalizePixKey(pixKeyInput ?? '');
-                const messagesForValidation = (withdrawCopy as unknown as Record<string, string>);
+                const messagesForValidation = withdrawCopy as unknown as Record<string, string>;
                 const validation = validatePixKey(normalized, messagesForValidation);
                 if (!validation.ok) {
-                  setWithdrawNote({ status: 'error', message: validation.message ?? (withdrawCopy.registerInvalid ?? 'Chave inválida') });
+                  setWithdrawNote({
+                    status: 'error',
+                    message: validation.message ?? withdrawCopy.registerInvalid ?? 'Chave inválida',
+                  });
                   return;
                 }
                 setIsSavingPixKey(true);
@@ -500,8 +533,12 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
                   ]);
                   const authOptions = await resolveAuthOptions();
                   await usersApi.updatePixKey({ pixKey: normalized }, authOptions);
-                  // refresh local store
-                  await refreshWalletData();
+                  // refresh local store and user snapshot to avoid stale pix key
+                  await Promise.all([
+                    refreshWalletData(),
+                    refreshUserSnapshot({ accessToken: authOptions.token }),
+                    loadPixKey(),
+                  ]);
                   setPixKeyModalOpen(false);
                   // if we had a pending withdraw amount, open confirmation modal
                   if (pendingWithdrawAmount != null) {
@@ -552,16 +589,29 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
           <>
             <Button
               type="button"
-              onClick={async () => {
+              disabled={
+                isProcessingWithdraw ||
+                pendingWithdrawAmount == null ||
+                withdrawPassword.trim().length === 0
+              }
+              onClick={() => {
+                if (pendingWithdrawAmount == null) return;
+                const trimmedPassword = withdrawPassword.trim();
+                if (!trimmedPassword) {
+                  setWithdrawNote({
+                    status: 'error',
+                    message: 'Informe a senha da conta para confirmar o saque.',
+                  });
+                  return;
+                }
                 setWithdrawNote(null);
                 setWithdrawConfirmOpen(false);
-                if (pendingWithdrawAmount == null) return;
                 startWithdrawTransition(() => {
                   void (async () => {
                     const res = await requestWithdrawal(
                       pendingWithdrawAmount,
                       String(displayedPixKey ?? '').trim(),
-                      withdrawPassword || undefined
+                      trimmedPassword
                     );
                     if (!res.ok) {
                       setWithdrawNote({
@@ -600,7 +650,7 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
           </p>
           <div className="space-y-2">
             <label htmlFor="withdraw-password" className="text-sm font-medium">
-              Senha (opcional)
+              Senha (obrigatória)
             </label>
             <Input
               id="withdraw-password"
@@ -608,6 +658,7 @@ export function CarteiraContent({ initialAccountSnapshot }: CarteiraContentProps
               value={withdrawPassword}
               onChange={(e) => setWithdrawPassword(e.target.value)}
               placeholder="Senha da conta"
+              required
             />
           </div>
           <div className="rounded-2xl bg-[var(--color-muted-foreground)]/5 p-4">

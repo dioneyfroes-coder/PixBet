@@ -1,10 +1,17 @@
-no backend já existe um jogo coin flip, falta implementar a lógica no frontend para jogar e receber o resultado do backend.
+problema persisnte de lados de moeda, vamos deixar de lado a palavra escrita na moeda e usar simbolicamente os lados coloridos que já existem, amarelo cara e azul para coroa, os botões de escolha da aposta podem refletir essa escolha também de forma visual.
+os valores mínimo/maximo e multiplicador do prêmio não estão refletindo a documentação! deve ser corrigido, assim como a formatação do valor da aposta e o histórico de ultimas rodadas que também não mostra valores corretos.
 
-página loja, deve parar de usar dados mock, então buscar itens para venda direto do backend, caso não tenha, informe num card que em breve será adicionados
+a página perfil continua com pedido em loop pro backend,
+percebi isso no console do navegador:
+[perfil] resolved profile data ObjectcreatedAt: "2025-12-03T22:43:56.121Z"email: "dratzoinigualavel@gmail.com"firstName: ""id: "27a57554-2cca-4166-b487-709862131a62"lastName: ""status: "ACTIVE"username: ""[[Prototype]]: Object
+perfil-3CW9N8FJ.js:1 [perfil] submitting profile update {current: {…}, form: {…}}
+perfil-3CW9N8FJ.js:1 [perfil] profile update succeeded 
 
-página carteira, vamos separar em componentes o saque e o depósito, refaça o saque totalmente
+acredito que há diferenças o objeto de dados do perfil vindo do backend e o que o frontend espera. verifique documentação e corrija.
 
-página perfil, separar em componentes, em cards e seções de informações pessoais, segurança e preferências,
-    carregar os dados do usuário do backend para saber oque está mudando.
-    componentize a parte de Notificações e segurança, para buscar e atualizar os dados no backend, não usar mais mock, ainda não existe no backend, então faça primeiro e sugira as mudanças necessárias que combine com o que precisa.
-    
+eu perguntei ao backend sobre o problema de atividades e a resposata é:
+O frontend depende da resposta de /api/wallets/history (WalletHistoryTransaction em Finance_docs.mdx e ITransactionDTO em Transaction.ts). Cada entrada já contém o tipo (depósito, saque, bloqueio etc.), o valor, a moeda, a descrição, o createdAt e um objeto metadata.
+
+Nos fluxos de Pix, o metadata inclui channel: "PIX" mais identificadores como pixChargeId, pixPayoutId, pixReference, pixKey etc., permitindo que a UI identifique o movimento como depósito/saque Pix. Para atividade de jogo, o metadata é preenchido (pelos serviços como CoinFlipGameService) com valores como channel: "GAME", game: "coin-flip" e IDs específicos da rodada, o que diferencia apostas/payouts do Pix.
+
+Além disso, os logs wallet_action em backbet.log refletem esses mesmos campos de metadata, além do snapshot de balance e lockedBalance, o que ajuda a validar o que o frontend exibe. Assim, ao renderizar o histórico, o client olha para type + metadata.channel para decidir se a transação veio de Pix, apostas de coin-flip, prêmios, ajustes de admin etc.

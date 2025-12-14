@@ -6,27 +6,65 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { cn } from '../lib/cn';
 import { selectWalletBalance, useAccountStore } from '../stores/useAccountStore';
+import type { WalletSnapshot } from '../stores/useAccountStore';
 import {
   getCoinFlipConfig,
   getCoinFlipHistory,
-  getCoinFlipFeed,
   playCoinFlip,
   type CoinFlipConfig,
   type CoinFlipRound,
 } from '../lib/sdk/clients/games';
+import { formatMoney, centsToDecimal, normalizeMoneyAmount } from '../utils/money';
 
 const CHOICES = [
   { value: 'HEADS' as const, label: 'Cara' },
   { value: 'TAILS' as const, label: 'Coroa' },
 ];
+const FACE_LABELS: Record<'HEADS' | 'TAILS', string> = {
+  HEADS: 'Cara',
+  TAILS: 'Coroa',
+};
 
-function formatCurrencyUnits(value: number, currency = 'BRL') {
-  try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value);
-  } catch {
-    return `R$ ${value.toFixed(2)}`;
+const ROUND_RESULT_LABELS: Record<'WIN' | 'LOSE' | 'PENDING', string> = {
+  WIN: 'Ganhou',
+  LOSE: 'Perdeu',
+  PENDING: 'Pendente',
+};
+
+const VALUE_SHIFT_THRESHOLD = 10_000;
+
+function decodeDecimalValue(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return null;
+  if (Math.abs(value) > VALUE_SHIFT_THRESHOLD) {
+    return value / 100;
   }
+  return value;
 }
+
+function formatMultiplierValue(value?: number | null) {
+  const decimal = decodeDecimalValue(value);
+  if (decimal == null) {
+    return null;
+  }
+  const formatted = Number.isInteger(decimal)
+    ? String(decimal)
+    : decimal.toFixed(2).replace(/\.00$/, '');
+  return `${formatted}x`;
+}
+
+const CHOICE_THEMES: Record<
+  'HEADS' | 'TAILS',
+  { selected: string; indicator: string }
+> = {
+  HEADS: {
+    selected: 'border-amber-400 bg-amber-400/10 text-amber-500',
+    indicator: 'bg-amber-400',
+  },
+  TAILS: {
+    selected: 'border-sky-500 bg-sky-500/10 text-sky-500',
+    indicator: 'bg-sky-500',
+  },
+};
 
 function formatTimestamp(value: string) {
   try {
@@ -39,13 +77,12 @@ function formatTimestamp(value: string) {
   }
 }
 
-export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
+export function CoinFlipGame({ descriptor }: GameComponentProps) {
   const walletBalanceCents = useAccountStore(selectWalletBalance);
   const walletLoading = useAccountStore((state) => state.loading.wallet);
   const refreshAccount = useAccountStore((state) => state.refreshAll);
   const [config, setConfig] = useState<CoinFlipConfig | null>(null);
   const [history, setHistory] = useState<CoinFlipRound[]>([]);
-  const [feed, setFeed] = useState<CoinFlipRound[]>([]);
   const [choice, setChoice] = useState<'HEADS' | 'TAILS'>('HEADS');
   const [wager, setWager] = useState('');
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -77,7 +114,8 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
         setConfig(cfg);
         setHistory(hist.rounds ?? []);
         if (cfg?.minBet) {
-          setWager(String(cfg.minBet));
+          const normalizedMin = decodeDecimalValue(cfg.minBet) ?? 0;
+          setWager(String(normalizedMin));
         }
         setError(null);
       } catch (err) {
@@ -97,18 +135,18 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
   useEffect(() => {
     let active = true;
     let timer: number | undefined;
-    const pullFeed = async () => {
+    const pullHistory = async () => {
       try {
-        const next = await getCoinFlipFeed();
+        const next = await getCoinFlipHistory({ limit: 10 });
         if (!active) return;
-        setFeed(next.rounds ?? []);
+        setHistory(next.rounds ?? []);
       } catch {
-        // ignore background feed errors
+        // ignore background history errors
       }
     };
-    pullFeed();
+    pullHistory();
     if (typeof window !== 'undefined') {
-      timer = window.setInterval(pullFeed, 10000);
+      timer = window.setInterval(pullHistory, 15_000);
     }
     return () => {
       active = false;
@@ -116,8 +154,17 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
     };
   }, []);
 
-  const walletBalance = (walletBalanceCents ?? 0) / 100;
+  const walletBalance = centsToDecimal(walletBalanceCents);
   const currency = config?.currency ?? 'BRL';
+  const displayedBalance = Math.max(0, walletBalance);
+
+  const formatRoundAmount = (value: number | undefined | null, currencyCode: string) => {
+    const decimalValue = decodeDecimalValue(value ?? 0) ?? 0;
+    return formatMoney(normalizeMoneyAmount(decimalValue), currencyCode);
+  };
+
+  const getRoundResultLabel = (result?: CoinFlipRound['result']) =>
+    result ? ROUND_RESULT_LABELS[result] : ROUND_RESULT_LABELS.PENDING;
 
   const validateWager = useCallback(
     (value: number) => {
@@ -125,11 +172,13 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
         return 'Informe um valor válido para jogar.';
       }
       if (config) {
-        if (value < config.minBet) {
-          return `O mínimo permitido é ${formatCurrencyUnits(config.minBet, currency)}.`;
+        const minBet = decodeDecimalValue(config.minBet ?? null);
+        const maxBet = decodeDecimalValue(config.maxBet ?? null);
+        if (minBet != null && value < minBet) {
+          return `O mínimo permitido é ${formatMoney(minBet, currency)}.`;
         }
-        if (value > config.maxBet) {
-          return `O máximo permitido é ${formatCurrencyUnits(config.maxBet, currency)}.`;
+        if (maxBet != null && value > maxBet) {
+          return `O máximo permitido é ${formatMoney(maxBet, currency)}.`;
         }
       }
       if (walletBalance && value > walletBalance) {
@@ -155,7 +204,11 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
       setFlipState('animating');
       setFlipWinner(null);
       try {
-        const response = await playCoinFlip({ choice, wager: numericWager });
+        const normalizedWager = normalizeMoneyAmount(numericWager);
+        const response = await playCoinFlip({ choice, wager: normalizedWager });
+        if (!response?.round) {
+          throw new Error('Resposta inválida do servidor.');
+        }
         if (response?.round) {
           // push to history immediately (backend snapshot)
           setHistory((prev) => [response.round, ...prev].slice(0, 10));
@@ -172,11 +225,6 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
         animationTimeoutRef.current = window.setTimeout(async () => {
           animationTimeoutRef.current = null;
           setFlipState('revealed');
-          try {
-            await refreshAccount();
-          } catch {
-            // ignore
-          }
           if (response?.round) {
             const result = response.round.result;
             if (result === 'WIN') {
@@ -187,9 +235,29 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
               setSuccess('Aposta registrada — aguardando resultado...');
             }
           }
+          try {
+            if (response?.wallet) {
+              const snapshot = response.wallet as WalletSnapshot;
+              useAccountStore.setState((state) => ({
+                wallet: {
+                  ...(state.wallet ?? {}),
+                  ...snapshot,
+                },
+              }));
+            }
+            await refreshAccount();
+            const latest = await getCoinFlipHistory({ limit: 10 });
+            setHistory(latest.rounds ?? []);
+          } catch {
+            // ignore refresh errors; UI already shows optimistic result
+          }
           setIsPlaying(false);
         }, 1200);
       } catch (err) {
+        if (animationTimeoutRef.current) {
+          window.clearTimeout(animationTimeoutRef.current);
+          animationTimeoutRef.current = null;
+        }
         const message = err instanceof Error ? err.message : 'Não foi possível jogar agora.';
         setFlipState('idle');
         setIsPlaying(false);
@@ -216,16 +284,18 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
 
   const summaryStats = useMemo(() => {
     if (!config) return [] as Array<{ label: string; value: string }>;
+    const minBetValue = decodeDecimalValue(config.minBet ?? null);
+    const maxBetValue = decodeDecimalValue(config.maxBet ?? null);
+    const payoutAmountValue =
+      config.fixedWinAmount != null ? decodeDecimalValue(config.fixedWinAmount) : null;
+    const formattedPayout =
+      payoutAmountValue != null
+        ? formatMoney(payoutAmountValue, currency)
+        : formatMultiplierValue(config.payoutMultiplier) ?? '—';
     return [
-      { label: 'Aposta mínima', value: formatCurrencyUnits(config.minBet, currency) },
-      { label: 'Aposta máxima', value: formatCurrencyUnits(config.maxBet, currency) },
-      {
-        label: 'Pagamento',
-        value:
-          config.fixedWinAmount != null
-            ? formatCurrencyUnits(config.fixedWinAmount, currency)
-            : `${config.payoutMultiplier ?? 2}x`,
-      },
+      { label: 'Aposta mínima', value: minBetValue != null ? formatMoney(minBetValue, currency) : '—' },
+      { label: 'Aposta máxima', value: maxBetValue != null ? formatMoney(maxBetValue, currency) : '—' },
+      { label: 'Multiplicador do prêmio', value: formattedPayout },
     ];
   }, [config, currency]);
 
@@ -240,7 +310,7 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <CardContent className="grid gap-6 md:grid-cols-3 md:items-center md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-wide text-[var(--color-muted)]">Status</p>
             <p
@@ -257,7 +327,7 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
               Saldo disponível
             </p>
             <p className="text-2xl font-semibold">
-              {loading ? 'Carregando...' : formatCurrencyUnits(walletBalance, currency)}
+              {loading ? 'Carregando...' : formatMoney(displayedBalance, currency)}
             </p>
           </div>
           <div className="grid gap-2 text-sm text-[var(--color-muted)]">
@@ -267,15 +337,6 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
                 <span className="font-semibold text-[var(--color-foreground)]">{item.value}</span>
               </div>
             ))}
-          </div>
-          <div className="min-w-[180px] rounded-xl border border-[color:var(--color-border)] p-4 text-sm">
-            <p className="text-[var(--color-muted)]">Telemetria</p>
-            <p>Taxa de vitória: {stats.winRate.toFixed(1)}%</p>
-            <p>Jogadores ativos: {stats.activePlayers.toLocaleString('pt-BR')}</p>
-            <p>
-              Tendência:{' '}
-              {stats.trend === 'up' ? 'Alta' : stats.trend === 'down' ? 'Baixa' : 'Estável'}
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -306,17 +367,11 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
               >
                 {/* rim ridges element for visual edge detail */}
                 <span className="coin-ridges" aria-hidden="true" />
-                <span className="coin-face coin-face--heads" aria-hidden={flipState !== 'revealed'}>
-                  <span className="coin-face__label">CARA</span>
-                </span>
-                <span className="coin-face coin-face--tails" aria-hidden={flipState !== 'revealed'}>
-                  <span className="coin-face__label">COROA</span>
-                </span>
+                <span className="coin-face coin-face--heads" aria-hidden={flipState !== 'revealed'} />
+                <span className="coin-face coin-face--tails" aria-hidden={flipState !== 'revealed'} />
               </div>
               <span className="sr-only" aria-live="polite">
-                {flipState === 'revealed' && flipWinner
-                  ? `Moeda: ${flipWinner === 'HEADS' ? 'Cara' : 'Coroa'}`
-                  : ''}
+                {flipState === 'revealed' && flipWinner ? `Moeda: ${FACE_LABELS[flipWinner]}` : ''}
               </span>
             </div>
           </div>
@@ -329,15 +384,24 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
                     key={option.value}
                     type="button"
                     className={cn(
-                      'flex-1 rounded-xl border px-4 py-3 text-center text-lg font-semibold transition-colors',
+                      'flex-1 rounded-xl border px-4 py-3 text-center text-lg font-semibold transition-colors focus-visible:ring focus-visible:ring-[color:var(--color-primary)]/40',
                       choice === option.value
-                        ? 'border-emerald-400 bg-emerald-400/10'
-                        : 'border-[color:var(--color-border)]'
+                        ? CHOICE_THEMES[option.value].selected
+                        : 'border-[color:var(--color-border)] text-[var(--color-muted)] hover:border-[color:var(--color-primary)]/30'
                     )}
                     onClick={() => setChoice(option.value)}
                     disabled={isPlaying}
                   >
-                    {option.label}
+                    <span className="flex items-center justify-center gap-2">
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full',
+                          CHOICE_THEMES[option.value].indicator
+                        )}
+                        aria-hidden
+                      />
+                      {option.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -365,79 +429,42 @@ export function CoinFlipGame({ descriptor, stats }: GameComponentProps) {
           </form>
         </CardContent>
       </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Suas últimas rodadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-[var(--color-muted)]">Sincronizando histórico...</p>
-            ) : history.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">Nenhuma rodada registrada ainda.</p>
-            ) : (
-              <ul className="space-y-3">
-                {history.map((round) => (
-                  <li
-                    key={round.id ?? `${round.createdAt}-${round.choice}`}
-                    className="rounded-xl border border-[color:var(--color-border)] p-4"
-                  >
-                    <div className="flex items-center justify-between text-sm text-[var(--color-muted)]">
-                      <span>{formatTimestamp(round.createdAt)}</span>
-                      <span>{round.result ?? 'PENDENTE'}</span>
-                    </div>
-                    <div className="mt-1 text-lg font-semibold">
-                      {round.choice === 'HEADS' ? 'Cara' : 'Coroa'} ·{' '}
-                      {formatCurrencyUnits(round.wager, round.currency ?? currency)}
-                    </div>
-                    {round.payoutAmount != null && (
-                      <p className="text-sm text-[var(--color-muted)]">
-                        Pagamento:{' '}
-                        {formatCurrencyUnits(round.payoutAmount, round.currency ?? currency)}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Feed público</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {feed.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">Aguardando novas rodadas...</p>
-            ) : (
-              <ul className="space-y-3">
-                {feed.map((round) => (
-                  <li
-                    key={`${round.createdAt}-${round.choice}`}
-                    className="rounded-xl bg-[var(--color-border)]/20 p-4"
-                  >
-                    <div className="flex items-center justify-between text-sm text-[var(--color-muted)]">
-                      <span>{formatTimestamp(round.createdAt)}</span>
-                      <span>
-                        {round.outcome
-                          ? `Resultado: ${round.outcome === 'HEADS' ? 'Cara' : 'Coroa'}`
-                          : 'Em andamento'}
-                      </span>
-                    </div>
-                    <div className="text-sm font-semibold">
-                      Usuário · aposta de{' '}
-                      {formatCurrencyUnits(round.wager, round.currency ?? currency)} em{' '}
-                      {round.choice === 'HEADS' ? 'Cara' : 'Coroa'}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Suas últimas rodadas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-[var(--color-muted)]">Sincronizando histórico...</p>
+          ) : history.length === 0 ? (
+            <p className="text-sm text-[var(--color-muted)]">Nenhuma rodada registrada ainda.</p>
+          ) : (
+            <ul className="space-y-3">
+              {history.map((round) => (
+                <li
+                  key={round.id ?? `${round.createdAt}-${round.choice}`}
+                  className="rounded-xl border border-[color:var(--color-border)] p-4"
+                >
+                  <div className="flex items-center justify-between text-sm text-[var(--color-muted)]">
+                    <span>{formatTimestamp(round.createdAt)}</span>
+                    <span>{getRoundResultLabel(round.result)}</span>
+                  </div>
+                  <div className="mt-1 text-lg font-semibold">
+                    {FACE_LABELS[(round.choice ?? 'HEADS') as 'HEADS' | 'TAILS']} ·{' '}
+                    {formatRoundAmount(round.wager ?? 0, round.currency ?? currency)}
+                  </div>
+                  {round.payoutAmount != null && (
+                    <p className="text-sm text-[var(--color-muted)]">
+                      Pagamento:{' '}
+                      {formatRoundAmount(round.payoutAmount ?? 0, round.currency ?? currency)}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

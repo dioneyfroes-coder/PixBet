@@ -21,7 +21,10 @@ describe('useDeposit', () => {
 
   beforeEach(() => {
     createPixDepositMock = vi.fn().mockResolvedValue(defaultPixDeposit);
-    ensurePaymentsClient = async () => ({ createPixDeposit: createPixDepositMock as unknown as DepositPaymentsClient['createPixDeposit'] });
+    ensurePaymentsClient = async () => ({
+      createPixDeposit:
+        createPixDepositMock as unknown as DepositPaymentsClient['createPixDeposit'],
+    });
     refreshWalletData = vi.fn().mockResolvedValue(undefined);
   });
 
@@ -82,7 +85,9 @@ describe('useDeposit', () => {
     });
 
     createPixDepositMock = vi.fn().mockRejectedValue(backendErr);
-    ensurePaymentsClient = async () => ({ createPixDeposit: createPixDepositMock as DepositPaymentsClient['createPixDeposit'] });
+    ensurePaymentsClient = async () => ({
+      createPixDeposit: createPixDepositMock as DepositPaymentsClient['createPixDeposit'],
+    });
     const { result } = renderHook(() =>
       useDeposit(ensurePaymentsClient, refreshWalletData, 100000)
     );

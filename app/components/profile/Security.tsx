@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
-import { sendApiRequest } from '../../lib/sdk/core/client';
 import { usersApi } from '../../lib/sdk/modules/users';
 import { resolveAuthOptions } from '../../lib/sdk/clients/_internal';
 
@@ -40,12 +39,7 @@ export default function Security() {
     setIsChangingPassword(true);
     try {
       const authOptions = await resolveAuthOptions();
-      await sendApiRequest('/users/me/password', {
-        method: 'POST',
-        body: { currentPassword, newPassword },
-        target: 'api',
-        token: authOptions.token,
-      });
+      await usersApi.changePassword({ currentPassword, newPassword }, authOptions);
       setPasswordModalOpen(false);
       setCurrentPassword('');
       setNewPassword('');
@@ -62,11 +56,7 @@ export default function Security() {
     setIsDeletingAccount(true);
     try {
       const authOptions = await resolveAuthOptions();
-      await sendApiRequest('/users/me', {
-        method: 'DELETE',
-        target: 'api',
-        token: authOptions.token,
-      });
+      await usersApi.deleteAccount(authOptions);
       setDeleteModalOpen(false);
     } catch (err) {
       console.error('failed to delete account', err);

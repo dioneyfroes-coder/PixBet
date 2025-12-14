@@ -7,6 +7,7 @@ export type PaymentsClient = {
     amount: number;
     currency: string;
     pixKey: string;
+    password?: string;
   }) => Promise<boolean>;
 };
 
@@ -47,7 +48,7 @@ export function useWithdraw(ensurePaymentsClient: () => Promise<PaymentsClient |
   );
 
   const requestWithdrawal = useCallback(
-    async (amount: number, pixKey: string): Promise<RequestWithdrawalResult> => {
+    async (amount: number, pixKey: string, password?: string): Promise<RequestWithdrawalResult> => {
       const paymentsClient = await ensurePaymentsClient();
       if (!paymentsClient?.requestPixWithdrawal)
         return { ok: false, reason: 'unavailable', message: 'Serviço de pagamentos indisponível' };
@@ -56,6 +57,7 @@ export function useWithdraw(ensurePaymentsClient: () => Promise<PaymentsClient |
           amount,
           currency: 'BRL',
           pixKey: String(pixKey ?? '').trim(),
+          password: password ?? undefined,
         });
         if (ok) return { ok: true };
         return { ok: false, reason: 'request_failed' };

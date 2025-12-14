@@ -2,22 +2,10 @@ import type { GameDescriptor, GameModuleImporter } from '../types/games';
 import type { RemoteGameDescriptor } from '../lib/sdk/clients/games';
 import { getGames } from '../lib/sdk/clients/games';
 
-const loadLiveMatchMonitor: GameModuleImporter = () =>
-  import('../games/live-match-monitor').then((module) => ({ default: module.LiveMatchMonitor }));
-
-const loadOddsHeatmap: GameModuleImporter = () =>
-  import('../games/odds-heatmap').then((module) => ({ default: module.OddsHeatmap }));
-
-const loadPenaltyAnalytics: GameModuleImporter = () =>
-  import('../games/penalty-analytics').then((module) => ({ default: module.PenaltyAnalytics }));
-
 const loadCoinFlip: GameModuleImporter = () =>
   import('../games/coin-flip').then((module) => ({ default: module.CoinFlipGame }));
 
 const moduleMap: Record<string, GameModuleImporter> = {
-  'live-monitor': loadLiveMatchMonitor,
-  'odds-heatmap': loadOddsHeatmap,
-  'penalty-analytics': loadPenaltyAnalytics,
   'coin-flip': loadCoinFlip,
 };
 
@@ -81,7 +69,7 @@ async function fetchAndHydrate(): Promise<GameDescriptor[]> {
   let remote: RemoteGameDescriptor[] = [];
   try {
     remote = await getGames();
-  } catch (err) {
+  } catch {
     // If fetching remote registry fails, fall back to local built-in modules.
     // Keep the error silent here; callers will receive the local registry instead.
     remote = [];
@@ -90,16 +78,22 @@ async function fetchAndHydrate(): Promise<GameDescriptor[]> {
     .map((item) => hydrateRemoteGame(item))
     .filter((item): item is GameDescriptor => Boolean(item));
   // If backend returned nothing, fall back to built-in local registry
-  const final = hydrated.length > 0 ? hydrated : Object.keys(moduleMap).map((slug) => ({
-    id: slug,
-    slug,
-    name: slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
-    icon: '🎮',
-    category: DEFAULT_CATEGORY,
-    overview: '',
-    highlights: [],
-    loadComponent: moduleMap[slug],
-  } as GameDescriptor));
+  const final =
+    hydrated.length > 0
+      ? hydrated
+      : Object.keys(moduleMap).map(
+          (slug) =>
+            ({
+              id: slug,
+              slug,
+              name: slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+              icon: '🎮',
+              category: DEFAULT_CATEGORY,
+              overview: '',
+              highlights: [],
+              loadComponent: moduleMap[slug],
+            }) as GameDescriptor
+        );
   registryCache = final;
   cacheTimestamp = Date.now();
   return final;

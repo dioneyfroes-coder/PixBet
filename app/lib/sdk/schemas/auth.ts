@@ -64,7 +64,7 @@ export const UserPixKeyResponseSchema = z
   .passthrough();
 
 export const UserPixKeyUpdateSchema = z.object({
-  pixKey: PixKeyValueSchema,
+  pixKey: z.union([PixKeyValueSchema, z.literal('')]),
 });
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;

@@ -89,12 +89,16 @@ export default function Withdraw({
               >
                 {isProcessingWithdraw ? withdrawCopy.submitting : withdrawCopy.submit}
               </Button>
-              <div className="mt-2 flex justify-between">
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-[var(--color-muted)]">
                   Usando chave: <span className="font-mono">{String(displayedPixKey)}</span>
                 </p>
-                <Button size="sm" onClick={() => (window.location.href = '/perfil')}>
-                  Alterar chave
+                <Button
+                  size="sm"
+                  className="whitespace-nowrap"
+                  onClick={() => (window.location.href = '/perfil')}
+                >
+                  Alterar chave PIX
                 </Button>
               </div>
             </>

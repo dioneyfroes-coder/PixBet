@@ -4,7 +4,10 @@ export function normalizePixKey(raw: string) {
   return raw.trim().replace(/\s+/g, '');
 }
 
-export function validatePixKey(raw: string, messages?: Record<string, string>): PixValidationResult {
+export function validatePixKey(
+  raw: string,
+  messages?: Record<string, string>
+): PixValidationResult {
   const value = normalizePixKey(raw || '');
   // Allow clearing
   if (value.length === 0) return { ok: true };
@@ -19,7 +22,8 @@ export function validatePixKey(raw: string, messages?: Record<string, string>): 
   const isEmail = /@/.test(value);
   const isPossiblePhone = /^\+?\d[\d\-() ]+$/.test(raw);
   const digitsOnly = value.replace(/\D/g, '');
-  const isCpfCnpj = /^\d+$/.test(digitsOnly) && (digitsOnly.length === 11 || digitsOnly.length === 14);
+  const isCpfCnpj =
+    /^\d+$/.test(digitsOnly) && (digitsOnly.length === 11 || digitsOnly.length === 14);
 
   const validateCPF = (cpf: string) => {
     const nums = cpf.replace(/\D/g, '');
@@ -57,21 +61,24 @@ export function validatePixKey(raw: string, messages?: Record<string, string>): 
 
   if (isEmail) {
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRe.test(value)) return { ok: false, message: messages?.pixKeyInvalidEmail ?? 'E-mail inválido' };
+    if (!emailRe.test(value))
+      return { ok: false, message: messages?.pixKeyInvalidEmail ?? 'E-mail inválido' };
     return { ok: true };
   }
 
   if (isPossiblePhone) {
     const phone = value.replace(/[^0-9+]/g, '');
     const phoneRe = /^\+?\d{8,15}$/;
-    if (!phoneRe.test(phone)) return { ok: false, message: messages?.pixKeyInvalidPhone ?? 'Telefone inválido' };
+    if (!phoneRe.test(phone))
+      return { ok: false, message: messages?.pixKeyInvalidPhone ?? 'Telefone inválido' };
     return { ok: true };
   }
 
   if (isCpfCnpj) {
     if (process.env.NODE_ENV === 'production') {
       const valid = digitsOnly.length === 11 ? validateCPF(digitsOnly) : validateCNPJ(digitsOnly);
-      if (!valid) return { ok: false, message: messages?.pixKeyInvalidCpfCnpjDigits ?? 'CPF/CNPJ inválido' };
+      if (!valid)
+        return { ok: false, message: messages?.pixKeyInvalidCpfCnpjDigits ?? 'CPF/CNPJ inválido' };
     }
     return { ok: true };
   }
