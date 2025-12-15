@@ -57,7 +57,7 @@ describe('CoinFlip animation timeout cleanup', () => {
       highlights: [],
     } as unknown as GameDescriptor;
 
-    const { getByLabelText, getByRole, unmount } = render(
+    const { getByRole, unmount } = render(
       // minimal props expected by descriptor/stats
       <CoinFlipGame
         descriptor={fullDescriptor}
@@ -74,10 +74,7 @@ describe('CoinFlip animation timeout cleanup', () => {
     // Wait for initial effects to resolve
     await Promise.resolve();
 
-    // set a wager value
-    const wagerInput = getByLabelText('Valor da aposta') as HTMLInputElement;
-    fireEvent.change(wagerInput, { target: { value: '1' } });
-
+    // choose a side and play
     const playButton = getByRole('button', { name: /jogar/i });
     fireEvent.click(playButton);
     // At this point the component schedules the reveal timeout.

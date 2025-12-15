@@ -14,7 +14,7 @@ interface Props {
   setPixKey: (v: string) => void;
   pixStatus: 'idle' | 'saving' | 'saved' | 'error';
   pixError: string | null;
-  handlePixSave: (e?: React.SyntheticEvent) => Promise<void> | void;
+  handlePixSave: (e?: React.SyntheticEvent, explicitValue?: string) => Promise<void> | void;
 }
 
 export default function PixKeyCard({
@@ -56,7 +56,7 @@ export default function PixKeyCard({
               variant="outline"
               onClick={async () => {
                 setPixKey('');
-                await handlePixSave();
+                await handlePixSave(undefined, '');
               }}
             >
               Remover

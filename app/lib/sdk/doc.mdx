@@ -157,6 +157,10 @@ await financeApi.createWithdrawalRequest(
 
 Os payloads agora aceitam apenas `number` (os schemas nao fazem mais `coerce`). Se o valor vier de inputs controlados como string, converta para numero (`Number(value)`) antes de chamar os helpers. `amount` precisa ser positivo; o schema falha com mensagem amigavel caso contrario.
 
+### Atualizando a chave PIX
+
+O endpoint `/users/me/pix-key` exige autenticação e responde com `401 Unauthorized` quando o token expirou. Antes de chamar `usersApi.updatePixKey`, resolva as credenciais via `resolveOptionalAuthOptions` (ou `resolveAuthOptions`) e bloqueie a atualização quando não houver token válido. Se o cliente receber um `ApiClientError` com `status === 401`, exiba um texto como “Sessão expirada. Faça login novamente para continuar” e encaminhe o usuário para renovar a sessão em vez de repetir a requisição.
+
 ## 5. Autenticação e opções padrão
 
 Toda função autenticada aceita `AuthenticatedRequestOptions`:

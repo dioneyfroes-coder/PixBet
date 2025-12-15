@@ -3,7 +3,6 @@ import type { FormEvent } from 'react';
 import type { GameComponentProps } from '../types/games';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { cn } from '../lib/cn';
 import { selectWalletBalance, useAccountStore } from '../stores/useAccountStore';
 import type { WalletSnapshot } from '../stores/useAccountStore';
@@ -33,23 +32,17 @@ const ROUND_RESULT_LABELS: Record<'WIN' | 'LOSE' | 'PENDING', string> = {
 
 const VALUE_SHIFT_THRESHOLD = 10_000;
 
+const FIXED_WAGER = 1;
+const FIXED_PAYOUT = 3.5;
+const MULTI_PLAY_LIMIT = 10;
+const MULTI_PLAY_OPTIONS = Array.from({ length: MULTI_PLAY_LIMIT }, (_, index) => index + 1);
+
 function decodeDecimalValue(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return null;
   if (Math.abs(value) > VALUE_SHIFT_THRESHOLD) {
     return value / 100;
   }
   return value;
-}
-
-function formatMultiplierValue(value?: number | null) {
-  const decimal = decodeDecimalValue(value);
-  if (decimal == null) {
-    return null;
-  }
-  const formatted = Number.isInteger(decimal)
-    ? String(decimal)
-    : decimal.toFixed(2).replace(/\.00$/, '');
-  return `${formatted}x`;
 }
 
 const CHOICE_THEMES: Record<
@@ -84,7 +77,7 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
   const [config, setConfig] = useState<CoinFlipConfig | null>(null);
   const [history, setHistory] = useState<CoinFlipRound[]>([]);
   const [choice, setChoice] = useState<'HEADS' | 'TAILS'>('HEADS');
-  const [wager, setWager] = useState('');
+  const [multiPlayCount, setMultiPlayCount] = useState(MULTI_PLAY_OPTIONS[0]);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,10 +106,6 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
         if (!mounted) return;
         setConfig(cfg);
         setHistory(hist.rounds ?? []);
-        if (cfg?.minBet) {
-          const normalizedMin = decodeDecimalValue(cfg.minBet) ?? 0;
-          setWager(String(normalizedMin));
-        }
         setError(null);
       } catch (err) {
         if (!mounted) return;
@@ -166,36 +155,20 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
   const getRoundResultLabel = (result?: CoinFlipRound['result']) =>
     result ? ROUND_RESULT_LABELS[result] : ROUND_RESULT_LABELS.PENDING;
 
-  const validateWager = useCallback(
-    (value: number) => {
-      if (value <= 0 || Number.isNaN(value)) {
-        return 'Informe um valor válido para jogar.';
-      }
-      if (config) {
-        const minBet = decodeDecimalValue(config.minBet ?? null);
-        const maxBet = decodeDecimalValue(config.maxBet ?? null);
-        if (minBet != null && value < minBet) {
-          return `O mínimo permitido é ${formatMoney(minBet, currency)}.`;
-        }
-        if (maxBet != null && value > maxBet) {
-          return `O máximo permitido é ${formatMoney(maxBet, currency)}.`;
-        }
-      }
-      if (walletBalance && value > walletBalance) {
-        return 'Saldo insuficiente para essa aposta.';
-      }
-      return null;
-    },
-    [config, currency, walletBalance]
-  );
-
   const handlePlay = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const numericWager = Number(wager);
-      const validationMessage = validateWager(numericWager);
-      if (validationMessage) {
-        setError(validationMessage);
+      if (!config?.enabled) {
+        setError('Coin Flip indisponível no momento.');
+        return;
+      }
+      const plays = Math.min(multiPlayCount, MULTI_PLAY_LIMIT);
+      const totalBet = FIXED_WAGER * plays;
+      const formattedTotal = formatMoney(totalBet, currency);
+      if (walletBalance < totalBet) {
+        setError(
+          `Saldo insuficiente para ${plays} aposta${plays > 1 ? 's' : ''} (${formattedTotal}).`
+        );
         return;
       }
       setIsPlaying(true);
@@ -204,47 +177,59 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
       setFlipState('animating');
       setFlipWinner(null);
       try {
-        const normalizedWager = normalizeMoneyAmount(numericWager);
-        const response = await playCoinFlip({ choice, wager: normalizedWager });
-        if (!response?.round) {
-          throw new Error('Resposta inválida do servidor.');
+        const normalizedWager = normalizeMoneyAmount(FIXED_WAGER);
+        const rounds: CoinFlipRound[] = [];
+        let lastRound: CoinFlipRound | null = null;
+        let lastWalletSnapshot: WalletSnapshot | null = null;
+        for (let index = 0; index < plays; index += 1) {
+          const response = await playCoinFlip({ choice, wager: normalizedWager });
+          if (!response?.round) {
+            throw new Error('Resposta inválida do servidor.');
+          }
+          rounds.push(response.round);
+          lastRound = response.round;
+          if (response.wallet) {
+            lastWalletSnapshot = response.wallet as WalletSnapshot;
+          }
         }
-        if (response?.round) {
-          // push to history immediately (backend snapshot)
-          setHistory((prev) => [response.round, ...prev].slice(0, 10));
-          // determine which side landed; prefer explicit outcome, fallback to result + choice
-          const outcome =
-            response.round.outcome ??
-            (response.round.result === 'WIN' ? choice : choice === 'HEADS' ? 'TAILS' : 'HEADS');
-          setFlipWinner(outcome ?? null);
+        if (rounds.length > 0) {
+          setHistory((prev) => [...rounds, ...prev].slice(0, 10));
         }
-        // wait for the animation to finish then reveal text
+        if (lastWalletSnapshot) {
+          useAccountStore.setState((state) => ({
+            wallet: {
+              ...(state.wallet ?? {}),
+              ...lastWalletSnapshot,
+            },
+          }));
+        }
+        const outcome =
+          lastRound?.outcome ??
+          (lastRound?.result === 'WIN'
+            ? choice
+            : choice === 'HEADS'
+            ? 'TAILS'
+            : 'HEADS');
+        setFlipWinner(outcome ?? null);
         if (animationTimeoutRef.current) {
           window.clearTimeout(animationTimeoutRef.current);
         }
         animationTimeoutRef.current = window.setTimeout(async () => {
           animationTimeoutRef.current = null;
           setFlipState('revealed');
-          if (response?.round) {
-            const result = response.round.result;
+          if (lastRound) {
+            const result = lastRound.result;
+            const roundLabel =
+              plays > 1 ? `última rodada das ${plays}` : 'essa rodada';
             if (result === 'WIN') {
-              setSuccess('Parabéns! Você venceu essa rodada.');
+              setSuccess(`Parabéns! A ${roundLabel} venceu.`);
             } else if (result === 'LOSE') {
-              setSuccess('Que pena — você perdeu essa rodada.');
+              setSuccess(`Que pena — a ${roundLabel} foi perdida.`);
             } else {
               setSuccess('Aposta registrada — aguardando resultado...');
             }
           }
           try {
-            if (response?.wallet) {
-              const snapshot = response.wallet as WalletSnapshot;
-              useAccountStore.setState((state) => ({
-                wallet: {
-                  ...(state.wallet ?? {}),
-                  ...snapshot,
-                },
-              }));
-            }
             await refreshAccount();
             const latest = await getCoinFlipHistory({ limit: 10 });
             setHistory(latest.rounds ?? []);
@@ -264,7 +249,7 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
         setError(message);
       }
     },
-    [choice, refreshAccount, validateWager, wager]
+    [choice, config, currency, multiPlayCount, refreshAccount, walletBalance]
   );
 
   useEffect(() => {
@@ -283,21 +268,16 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
   }, [config]);
 
   const summaryStats = useMemo(() => {
-    if (!config) return [] as Array<{ label: string; value: string }>;
-    const minBetValue = decodeDecimalValue(config.minBet ?? null);
-    const maxBetValue = decodeDecimalValue(config.maxBet ?? null);
-    const payoutAmountValue =
-      config.fixedWinAmount != null ? decodeDecimalValue(config.fixedWinAmount) : null;
-    const formattedPayout =
-      payoutAmountValue != null
-        ? formatMoney(payoutAmountValue, currency)
-        : formatMultiplierValue(config.payoutMultiplier) ?? '—';
+    const multiplier = FIXED_PAYOUT / FIXED_WAGER;
+    const multiplierLabel = Number.isInteger(multiplier)
+      ? `${multiplier}x`
+      : `${multiplier.toFixed(2)}x`;
     return [
-      { label: 'Aposta mínima', value: minBetValue != null ? formatMoney(minBetValue, currency) : '—' },
-      { label: 'Aposta máxima', value: maxBetValue != null ? formatMoney(maxBetValue, currency) : '—' },
-      { label: 'Multiplicador do prêmio', value: formattedPayout },
+      { label: 'Valor da aposta', value: formatMoney(FIXED_WAGER, currency) },
+      { label: 'Prêmio fixo', value: formatMoney(FIXED_PAYOUT, currency) },
+      { label: 'Multiplicador', value: multiplierLabel },
     ];
-  }, [config, currency]);
+  }, [currency]);
 
   return (
     <div className="space-y-6">
@@ -406,24 +386,53 @@ export function CoinFlipGame({ descriptor }: GameComponentProps) {
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm text-[var(--color-muted)]" htmlFor="coin-flip-wager">
-                Valor da aposta
-              </label>
-              <Input
-                id="coin-flip-wager"
-                type="number"
-                step="0.01"
-                min="0"
-                value={wager}
-                onChange={(event) => setWager(event.target.value)}
-                disabled={isPlaying || loading}
-                required
-              />
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-sm text-[var(--color-muted)]">Valor da aposta</p>
+                <p className="text-2xl font-semibold">
+                  {formatMoney(FIXED_WAGER, currency)}
+                </p>
+                <p className="text-xs text-[var(--color-muted)]">
+                  Prêmio fixo de {formatMoney(FIXED_PAYOUT, currency)} (x{FIXED_PAYOUT / FIXED_WAGER})
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-[var(--color-muted)]">Jogadas consecutivas</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {MULTI_PLAY_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={cn(
+                        'w-full rounded-full border px-2 py-2 text-sm font-semibold transition-colors focus-visible:ring focus-visible:ring-[color:var(--color-primary)]/40',
+                        option === multiPlayCount
+                          ? 'border-[color:var(--color-primary)] bg-[color:var(--color-primary)]/10 text-[color:var(--color-primary)]'
+                          : 'border-[color:var(--color-border)] text-[var(--color-muted)] hover:border-[color:var(--color-primary)]/40'
+                      )}
+                      onClick={() => setMultiPlayCount(option)}
+                      disabled={isPlaying}
+                      aria-pressed={option === multiPlayCount}
+                    >
+                      {option}x
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[var(--color-muted)]">
+                  Total: {formatMoney(FIXED_WAGER * multiPlayCount, currency)}
+                </p>
+                <p className="text-xs text-[var(--color-muted)]">Limite por requisição: {MULTI_PLAY_LIMIT} apostas</p>
+              </div>
             </div>
             <div className="flex items-end">
-              <Button type="submit" disabled={isPlaying || loading || !config || !config.enabled}>
-                {isPlaying ? 'Jogando...' : 'Jogar'}
+              <Button
+                type="submit"
+                disabled={isPlaying || loading || !config || !config.enabled}
+              >
+                {isPlaying
+                  ? 'Jogando...'
+                  : multiPlayCount > 1
+                  ? `Jogar ${multiPlayCount}x`
+                  : 'Jogar'}
               </Button>
             </div>
           </form>

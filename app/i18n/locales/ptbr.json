@@ -724,4 +724,16 @@
   "gameDetail": {
     "loading": "Carregando módulo de jogo..."
   }
+  ,
+  "coinFlip": {
+    "fixedWagerLabel": "Valor da aposta",
+    "fixedPayoutLabel": "Prêmio fixo",
+    "multiplierLabel": "Multiplicador",
+    "multiPlayLabel": "Jogadas consecutivas",
+    "multiPlayLimitNote": "Limite por requisição: {limit} apostas",
+    "playButton": "Jogar",
+    "playButtonMulti": "Jogar {count}x",
+    "totalCostLabel": "Total",
+    "insufficientFunds": "Saldo insuficiente para {plays} aposta(s) ({total})."
+  }
 }

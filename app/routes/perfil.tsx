@@ -1,5 +1,5 @@
 import type { Route } from './+types/perfil';
-import type { ChangeEvent, FormEvent } from 'react';
+import type { ChangeEvent, FormEvent, MouseEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLoaderData } from 'react-router';
 import { useAccountHydration } from '../hooks/useAccountHydration';
@@ -20,6 +20,7 @@ import { requireAuth } from '../utils/auth.server';
 import { useI18n } from '../i18n/i18n-provider';
 import { usersApi, type PreferencesSnapshot } from '../lib/sdk/modules/users';
 import { resolveOptionalAuthOptions, resolveAuthOptions } from '../lib/sdk/clients/_internal';
+import { ApiClientError } from '../lib/sdk/core/errors';
 // SecureBalance removed from profile to avoid displaying wallet balance in profile
 
 interface StatItem {
@@ -80,12 +81,12 @@ export default function Perfil() {
   const { messages } = useI18n();
   const profileCopy: ProfileCopy = messages.profile;
   const walletCopy = messages.wallet as WalletCopy;
-  const getPersonalMsg = (key: string): string | undefined => {
+  const getPersonalMsg = useCallback((key: string): string | undefined => {
     const v = (profileCopy.personalForm as ProfileCopy['personalForm'])[
       key as keyof ProfileCopy['personalForm']
     ];
     return typeof v === 'string' ? v : undefined;
-  };
+  }, [profileCopy]);
   const summaryCard = walletCopy.summaryCard;
 
   // Start with empty form state; backend will populate when available.
@@ -301,132 +302,145 @@ export default function Perfil() {
     }
   };
 
-  const handlePixSave = async (event?: FormEvent | MouseEvent) => {
-    event?.preventDefault?.();
-    setPixStatus('saving');
-    setPixError(null);
-    try {
-      // Normalize: trim and remove internal whitespace
-      const raw = pixKey ?? '';
-      const normalized = raw.trim().replace(/\s+/g, '');
-      // Allow clearing the pixKey (empty string) to remove it
-      if (normalized.length === 0) {
-        const authOptions = await resolveAuthOptions();
-        await usersApi.updatePixKey({ pixKey: '' }, authOptions);
-        await refreshAccount({ accessToken: authOptions.token });
-        setPixKey('');
-        setPixStatus('saved');
-        window.setTimeout(() => setPixStatus('idle'), 1200);
-        return;
-      }
-
-      // Basic length checks
-      if (normalized.length < 5) {
-        setPixStatus('error');
-        setPixError(getPersonalMsg('pixKeyTooShort') ?? getPersonalMsg('pixKeyInvalid') ?? null);
-        return;
-      }
-      if (normalized.length > 180) {
-        setPixStatus('error');
-        setPixError(getPersonalMsg('pixKeyTooLong') ?? getPersonalMsg('pixKeyInvalid') ?? null);
-        return;
-      }
-
-      // Type-specific validation
-      const isEmail = /@/.test(normalized);
-      const isPossiblePhone = /^\+?\d[\d\-() ]+$/.test(raw);
-      const digitsOnly = normalized.replace(/\D/g, '');
-      const isCpfCnpj =
-        /^\d+$/.test(digitsOnly) && (digitsOnly.length === 11 || digitsOnly.length === 14);
-
-      // Helper: CPF verifier
-      const validateCPF = (cpf: string) => {
-        const nums = cpf.replace(/\D/g, '');
-        if (nums.length !== 11) return false;
-        // reject same digits
-        if (/^(\d)\1{10}$/.test(nums)) return false;
-        const calc = (t: number) => {
-          let sum = 0;
-          for (let i = 0; i < t - 1; i++) sum += Number(nums.charAt(i)) * (t - i);
-          const d = (sum * 10) % 11;
-          return d === 10 ? 0 : d;
-        };
-        const v1 = calc(10);
-        const v2 = calc(11);
-        return v1 === Number(nums.charAt(9)) && v2 === Number(nums.charAt(10));
-      };
-
-      // Helper: CNPJ verifier
-      const validateCNPJ = (cnpj: string) => {
-        const nums = cnpj.replace(/\D/g, '');
-        if (nums.length !== 14) return false;
-        if (/^(\d)\1{13}$/.test(nums)) return false;
-        const calc = (t: number) => {
-          let sum = 0;
-          let pos = t - 7;
-          for (let i = t; i >= 1; i--) {
-            sum += Number(nums.charAt(t - i)) * pos--;
-            if (pos < 2) pos = 9;
-          }
-          const res = sum % 11;
-          return res < 2 ? 0 : 11 - res;
-        };
-        const v1 = calc(12);
-        const v2 = calc(13);
-        return v1 === Number(nums.charAt(12)) && v2 === Number(nums.charAt(13));
-      };
-
-      if (isEmail) {
-        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRe.test(normalized)) {
-          setPixStatus('error');
-          setPixError(
-            getPersonalMsg('pixKeyInvalidEmail') ?? getPersonalMsg('pixKeyInvalid') ?? null
-          );
+  const PIX_SESSION_EXPIRED = 'Sessão expirada. Faça login novamente para continuar.';
+  const handlePixSave = useCallback(
+    async (event?: FormEvent | MouseEvent, overrideValue?: string) => {
+      event?.preventDefault?.();
+      setPixStatus('saving');
+      setPixError(null);
+      try {
+        const authOptions = await resolveOptionalAuthOptions();
+        if (!authOptions?.token) {
+          throw new Error(PIX_SESSION_EXPIRED);
+        }
+        // Normalize: trim and remove internal whitespace
+        const raw = overrideValue ?? pixKey ?? '';
+        const normalized = raw.trim().replace(/\s+/g, '');
+        // Allow clearing the pixKey (empty string) to remove it
+        if (normalized.length === 0) {
+          await usersApi.updatePixKey({ pixKey: '' }, authOptions);
+          await refreshAccount({ accessToken: authOptions.token });
+          setPixKey('');
+          setPixStatus('saved');
+          window.setTimeout(() => setPixStatus('idle'), 1200);
           return;
         }
-      } else if (isPossiblePhone) {
-        const phone = normalized.replace(/[^0-9+]/g, '');
-        const phoneRe = /^\+?\d{8,15}$/;
-        if (!phoneRe.test(phone)) {
+
+        // Basic length checks
+        if (normalized.length < 5) {
           setPixStatus('error');
-          setPixError(
-            getPersonalMsg('pixKeyInvalidPhone') ?? getPersonalMsg('pixKeyInvalid') ?? null
-          );
+          setPixError(getPersonalMsg('pixKeyTooShort') ?? getPersonalMsg('pixKeyInvalid') ?? null);
           return;
         }
-      } else if (isCpfCnpj) {
-        // In production, apply strict checksum validation for CPF/CNPJ
-        if (process.env.NODE_ENV === 'production') {
-          const valid =
-            digitsOnly.length === 11 ? validateCPF(digitsOnly) : validateCNPJ(digitsOnly);
-          if (!valid) {
+        if (normalized.length > 180) {
+          setPixStatus('error');
+          setPixError(getPersonalMsg('pixKeyTooLong') ?? getPersonalMsg('pixKeyInvalid') ?? null);
+          return;
+        }
+
+        // Type-specific validation
+        const isEmail = /@/.test(normalized);
+        const isPossiblePhone = /^\+?\d[\d\-() ]+$/.test(raw);
+        const digitsOnly = normalized.replace(/\D/g, '');
+        const isCpfCnpj =
+          /^\d+$/.test(digitsOnly) && (digitsOnly.length === 11 || digitsOnly.length === 14);
+
+        // Helper: CPF verifier
+        const validateCPF = (cpf: string) => {
+          const nums = cpf.replace(/\D/g, '');
+          if (nums.length !== 11) return false;
+          // reject same digits
+          if (/^(\d)\1{10}$/.test(nums)) return false;
+          const calc = (t: number) => {
+            let sum = 0;
+            for (let i = 0; i < t - 1; i++) sum += Number(nums.charAt(i)) * (t - i);
+            const d = (sum * 10) % 11;
+            return d === 10 ? 0 : d;
+          };
+          const v1 = calc(10);
+          const v2 = calc(11);
+          return v1 === Number(nums.charAt(9)) && v2 === Number(nums.charAt(10));
+        };
+
+        // Helper: CNPJ verifier
+        const validateCNPJ = (cnpj: string) => {
+          const nums = cnpj.replace(/\D/g, '');
+          if (nums.length !== 14) return false;
+          if (/^(\d)\1{13}$/.test(nums)) return false;
+          const calc = (t: number) => {
+            let sum = 0;
+            let pos = t - 7;
+            for (let i = t; i >= 1; i--) {
+              sum += Number(nums.charAt(t - i)) * pos--;
+              if (pos < 2) pos = 9;
+            }
+            const res = sum % 11;
+            return res < 2 ? 0 : 11 - res;
+          };
+          const v1 = calc(12);
+          const v2 = calc(13);
+          return v1 === Number(nums.charAt(12)) && v2 === Number(nums.charAt(13));
+        };
+
+        if (isEmail) {
+          const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRe.test(normalized)) {
             setPixStatus('error');
             setPixError(
-              getPersonalMsg('pixKeyInvalidCpfCnpjDigits') ??
-                getPersonalMsg('pixKeyInvalidCpfCnpj') ??
-                getPersonalMsg('pixKeyInvalid') ??
-                null
+              getPersonalMsg('pixKeyInvalidEmail') ?? getPersonalMsg('pixKeyInvalid') ?? null
             );
             return;
           }
+        } else if (isPossiblePhone) {
+          const phone = normalized.replace(/[^0-9+]/g, '');
+          const phoneRe = /^\+?\d{8,15}$/;
+          if (!phoneRe.test(phone)) {
+            setPixStatus('error');
+            setPixError(
+              getPersonalMsg('pixKeyInvalidPhone') ?? getPersonalMsg('pixKeyInvalid') ?? null
+            );
+            return;
+          }
+        } else if (isCpfCnpj) {
+          // In production, apply strict checksum validation for CPF/CNPJ
+          if (process.env.NODE_ENV === 'production') {
+            const valid =
+              digitsOnly.length === 11 ? validateCPF(digitsOnly) : validateCNPJ(digitsOnly);
+            if (!valid) {
+              setPixStatus('error');
+              setPixError(
+                getPersonalMsg('pixKeyInvalidCpfCnpjDigits') ??
+                  getPersonalMsg('pixKeyInvalidCpfCnpj') ??
+                  getPersonalMsg('pixKeyInvalid') ??
+                  null
+              );
+              return;
+            }
+          }
         }
-      }
 
-      const authOptions = await resolveAuthOptions();
-      await usersApi.updatePixKey({ pixKey: normalized }, authOptions);
-      await refreshAccount({ accessToken: authOptions.token });
-      // reflect normalized value in UI
-      setPixKey(normalized || '');
-      setPixStatus('saved');
-      setPixError(null);
-      window.setTimeout(() => setPixStatus('idle'), 1200);
-    } catch (err) {
-      console.error('failed to update pix key', err);
-      setPixStatus('error');
-      window.setTimeout(() => setPixStatus('idle'), 2000);
-    }
-  };
+        await usersApi.updatePixKey({ pixKey: normalized }, authOptions);
+        await refreshAccount({ accessToken: authOptions.token });
+        // reflect normalized value in UI
+        setPixKey(normalized);
+        setPixStatus('saved');
+        setPixError(null);
+        window.setTimeout(() => setPixStatus('idle'), 1200);
+      } catch (err) {
+        console.error('failed to update pix key', err);
+        setPixStatus('error');
+        const message =
+          err instanceof ApiClientError && err.status === 401
+            ? PIX_SESSION_EXPIRED
+            : err instanceof Error
+            ? err.message
+            : 'Falha ao salvar chave PIX.';
+        setPixError(message);
+        window.setTimeout(() => setPixStatus('idle'), 2000);
+      }
+    },
+    [pixKey, refreshAccount, getPersonalMsg]
+  );
 
   const handleDocUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
